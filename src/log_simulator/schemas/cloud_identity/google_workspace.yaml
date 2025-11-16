@@ -1,0 +1,214 @@
+# Google Workspace Audit Log Schema
+# Based on Admin SDK Reports API v1
+# Reference: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities
+
+schema_version: "1.0"
+log_type: "google_workspace_audit"
+description: "Google Workspace audit activity logs from Admin SDK Reports API"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+
+# Field definitions
+fields:
+  kind:
+    type: "constant"
+    value: "admin#reports#activity"
+    required: true
+    description: "Resource type identifier"
+
+  id:
+    type: "object"
+    required: true
+    description: "Unique identifier for the activity"
+    fields:
+      time:
+        type: "datetime"
+        format: "iso8601"
+        required: true
+        description: "Time of occurrence"
+
+      uniqueQualifier:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 16
+        required: true
+        description: "Unique qualifier for the event"
+
+      applicationName:
+        type: "enum"
+        values:
+          - "admin"
+          - "drive"
+          - "login"
+          - "calendar"
+          - "meet"
+          - "groups"
+          - "token"
+          - "user_accounts"
+        required: true
+        description: "Google Workspace application name"
+        default: "drive"
+
+      customerId:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "C"
+          length: 8
+        required: true
+        description: "Unique identifier for customer"
+
+  actor:
+    type: "object"
+    required: true
+    description: "User or application performing the action"
+    fields:
+      callerType:
+        type: "enum"
+        values:
+          - "USER"
+          - "APPLICATION"
+          - "SERVICE_ACCOUNT"
+        required: true
+        description: "Type of actor"
+        distribution:
+          USER: 0.85
+          APPLICATION: 0.10
+          SERVICE_ACCOUNT: 0.05
+
+      email:
+        type: "email"
+        generator: "email"
+        required: true
+        description: "Actor's email address"
+
+      profileId:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 21
+        required: true
+        description: "Actor's profile ID"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the actor"
+
+  events:
+    type: "array"
+    required: true
+    description: "List of events in this activity"
+    min_items: 1
+    max_items: 5
+    item:
+      type: "object"
+      fields:
+        type:
+          type: "string"
+          required: true
+          description: "Event type category"
+
+        name:
+          type: "string"
+          required: true
+          description: "Event name"
+          # Event names vary by application
+
+        parameters:
+          type: "array"
+          required: false
+          description: "Additional event-specific parameters"
+          item:
+            type: "object"
+            fields:
+              name:
+                type: "string"
+                required: true
+
+              value:
+                type: "string"
+                required: false
+
+              multiValue:
+                type: "array"
+                required: false
+                item:
+                  type: "string"
+
+# Pre-defined scenarios for different applications
+scenarios:
+  drive_file_access:
+    id.applicationName: "drive"
+    events:
+      - type: "access"
+        name: "view"
+        parameters:
+          - name: "doc_title"
+            value: "Quarterly Report.docx"
+          - name: "doc_id"
+            value: "1A2B3C4D5E6F"
+          - name: "owner"
+            value: "owner@example.com"
+
+  user_login_success:
+    id.applicationName: "login"
+    events:
+      - type: "login"
+        name: "login_success"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "is_second_factor"
+            value: "false"
+
+  user_login_failure:
+    id.applicationName: "login"
+    events:
+      - type: "login"
+        name: "login_failure"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "login_failure_type"
+            value: "wrong_password"
+
+  admin_user_create:
+    id.applicationName: "admin"
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "create_user"
+        parameters:
+          - name: "user_email"
+            value: "newuser@example.com"
+
+  calendar_event_change:
+    id.applicationName: "calendar"
+    events:
+      - type: "calendar_change"
+        name: "change_calendar_acls"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "grantee_email"
+            value: "guest@example.com"
+
+# Correlation rules - maintain consistency across related logs
+correlation:
+  - field: "id.customerId"
+    scope: "global"
+    description: "Same customer ID for all logs from one organization"
+
+  - field: "actor.email"
+    scope: "session"
+    description: "Same user across related activities"
+
+  - field: "actor.profileId"
+    scope: "session"
+    correlation_with: "actor.email"
+    description: "Profile ID must match email"
