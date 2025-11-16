@@ -223,6 +223,60 @@ class SchemaBasedGenerator:
         elif generator == 'device_name':
             return self.field_gen.device_name()
 
+        elif generator == 'email_subject':
+            return self.field_gen.email_subject()
+
+        elif generator == 'filename':
+            return self.field_gen.filename()
+
+        elif generator == 'referer':
+            return self.field_gen.referer()
+
+        elif generator == 'process_name':
+            return self.field_gen.process_name()
+
+        elif generator == 'command_line':
+            return self.field_gen.command_line()
+
+        elif generator == 'sha256':
+            return self.field_gen.sha256()
+
+        elif generator == 'md5':
+            return self.field_gen.md5()
+
+        elif generator == 'domain_name':
+            return self.field_gen.domain_name()
+
+        elif generator == 'file_path':
+            return self.field_gen.file_path()
+
+        elif generator == 'detection_name':
+            return self.field_gen.detection_name()
+
+        elif generator == 'registry_key':
+            return self.field_gen.registry_key()
+
+        elif generator == 'aws_user_agent':
+            return self.field_gen.aws_user_agent()
+
+        elif generator == 'aws_principal_id':
+            return self.field_gen.aws_principal_id()
+
+        elif generator == 'aws_arn':
+            return self.field_gen.aws_arn()
+
+        elif generator == 'aws_account_id':
+            return self.field_gen.aws_account_id()
+
+        elif generator == 'aws_resource_arn':
+            return self.field_gen.aws_resource_arn()
+
+        elif generator == 'gcp_project_id':
+            return self.field_gen.gcp_project_id()
+
+        elif generator == 'gcp_resource_name':
+            return self.field_gen.gcp_resource_name()
+
         else:
             return field_spec.get('default', 'default_value')
 

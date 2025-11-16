@@ -1,0 +1,172 @@
+# Apache HTTP Server Access Log Schema
+# Supports both Common Log Format and Combined Log Format
+
+schema_version: "1.0"
+log_type: "apache_access"
+description: "Apache HTTP Server access logs"
+
+# Output format configuration
+output_format: "combined"  # Can be "common", "combined", or "json"
+ecs_compatible: true
+
+# Field definitions (for JSON output)
+fields:
+  remote_host:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "Client IP address or hostname"
+    ecs_field: "source.ip"
+
+  remote_logname:
+    type: "string"
+    required: true
+    default: "-"
+    description: "Remote logname (from identd)"
+
+  remote_user:
+    type: "string"
+    generator: "username"
+    required: false
+    description: "Authenticated username"
+    default: "-"
+    ecs_field: "user.name"
+    distribution:
+      "-": 0.95
+      "user": 0.05
+
+  time_local:
+    type: "datetime"
+    format: "apache_datetime"
+    required: true
+    description: "Request timestamp in Apache format"
+    ecs_field: "@timestamp"
+
+  request_method:
+    type: "enum"
+    values:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "HEAD"
+      - "OPTIONS"
+      - "PATCH"
+    required: true
+    description: "HTTP request method"
+    ecs_field: "http.request.method"
+    distribution:
+      GET: 0.70
+      POST: 0.20
+      PUT: 0.03
+      DELETE: 0.02
+      HEAD: 0.03
+      OPTIONS: 0.01
+      PATCH: 0.01
+
+  request_uri:
+    type: "string"
+    generator: "uri_path"
+    required: true
+    description: "Request URI"
+    ecs_field: "url.path"
+
+  request_protocol:
+    type: "enum"
+    values:
+      - "HTTP/1.0"
+      - "HTTP/1.1"
+      - "HTTP/2.0"
+    required: true
+    description: "HTTP protocol version"
+    distribution:
+      "HTTP/1.1": 0.70
+      "HTTP/2.0": 0.28
+      "HTTP/1.0": 0.02
+
+  status:
+    type: "integer"
+    generator: "http_status"
+    required: true
+    description: "HTTP response status code"
+    ecs_field: "http.response.status_code"
+
+  bytes_sent:
+    type: "integer"
+    generator: "body_bytes"
+    required: true
+    description: "Size of response in bytes"
+    ecs_field: "http.response.body.bytes"
+    params:
+      min: 0
+      max: 5000000
+
+  referer:
+    type: "string"
+    generator: "referer"
+    required: false
+    description: "HTTP referer"
+    ecs_field: "http.request.referrer"
+    default: "-"
+
+  user_agent:
+    type: "string"
+    generator: "user_agent"
+    required: true
+    description: "User agent string"
+    ecs_field: "user_agent.original"
+
+# Common Log Format template
+# %h %l %u %t "%r" %>s %b
+common_format: '{remote_host} {remote_logname} {remote_user} [{time_local}] "{request_method} {request_uri} {request_protocol}" {status} {bytes_sent}'
+
+# Combined Log Format template
+# %h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-Agent}i"
+combined_format: '{remote_host} {remote_logname} {remote_user} [{time_local}] "{request_method} {request_uri} {request_protocol}" {status} {bytes_sent} "{referer}" "{user_agent}"'
+
+# Pre-defined scenarios
+scenarios:
+  successful_page:
+    request_method: "GET"
+    request_uri: "/index.html"
+    status: 200
+    bytes_sent: 4523
+
+  api_post:
+    request_method: "POST"
+    request_uri: "/api/v1/users"
+    status: 201
+    bytes_sent: 156
+
+  not_found:
+    request_method: "GET"
+    status: 404
+    bytes_sent: 162
+
+  static_asset:
+    request_method: "GET"
+    request_uri: "/static/css/style.css"
+    status: 200
+    bytes_sent: 15678
+
+  unauthorized:
+    request_method: "GET"
+    request_uri: "/admin"
+    status: 401
+    bytes_sent: 195
+
+  server_error:
+    request_method: "POST"
+    status: 500
+    bytes_sent: 567
+
+  redirect:
+    request_method: "GET"
+    status: 301
+    bytes_sent: 234
+
+# Correlation rules
+correlation:
+  - field: "remote_host"
+    scope: "session"
+    description: "Same IP for session requests"

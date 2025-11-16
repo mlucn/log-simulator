@@ -1,0 +1,224 @@
+# Google Cloud Audit Log Schema
+# Based on Cloud Logging AuditLog format
+# Reference: https://cloud.google.com/logging/docs/reference/audit/auditlog/rest/Shared.Types/AuditLog
+
+schema_version: "1.0"
+log_type: "gcp_audit"
+description: "Google Cloud Platform audit logs"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+
+# Field definitions
+fields:
+  insertId:
+    type: "string"
+    generator: "custom_id"
+    params:
+      prefix: ""
+      length: 16
+    required: true
+    description: "Unique log entry identifier"
+
+  logName:
+    type: "string"
+    required: true
+    description: "Log resource name"
+    default: "projects/my-project/logs/cloudaudit.googleapis.com%2Factivity"
+
+  protoPayload:
+    type: "object"
+    required: true
+    description: "Audit log proto payload"
+    fields:
+      "@type":
+        type: "constant"
+        value: "type.googleapis.com/google.cloud.audit.AuditLog"
+        required: true
+
+      authenticationInfo:
+        type: "object"
+        required: false
+        fields:
+          principalEmail:
+            type: "email"
+            generator: "email"
+            required: true
+
+      authorizationInfo:
+        type: "array"
+        required: false
+        min_items: 1
+        max_items: 2
+        item:
+          type: "object"
+          fields:
+            permission:
+              type: "string"
+              required: true
+              default: "compute.instances.create"
+
+            granted:
+              type: "boolean"
+              required: true
+              distribution:
+                true: 0.95
+                false: 0.05
+
+      methodName:
+        type: "enum"
+        values:
+          - "v1.compute.instances.insert"
+          - "v1.compute.instances.delete"
+          - "storage.buckets.create"
+          - "storage.objects.create"
+          - "storage.objects.delete"
+          - "iam.projects.serviceAccounts.create"
+          - "iam.projects.serviceAccounts.delete"
+          - "SetIamPolicy"
+        required: true
+        description: "RPC method name"
+        distribution:
+          "storage.objects.create": 0.30
+          "v1.compute.instances.insert": 0.15
+          "storage.buckets.create": 0.10
+          "storage.objects.delete": 0.15
+          "v1.compute.instances.delete": 0.10
+          "SetIamPolicy": 0.10
+          "iam.projects.serviceAccounts.create": 0.05
+          "iam.projects.serviceAccounts.delete": 0.05
+
+      resourceName:
+        type: "string"
+        required: true
+        description: "Resource name"
+        generator: "gcp_resource_name"
+
+      request:
+        type: "object"
+        required: false
+        description: "Request metadata"
+
+      response:
+        type: "object"
+        required: false
+        description: "Response metadata"
+
+      serviceName:
+        type: "enum"
+        values:
+          - "compute.googleapis.com"
+          - "storage.googleapis.com"
+          - "iam.googleapis.com"
+          - "cloudresourcemanager.googleapis.com"
+        required: true
+        description: "Service name"
+        distribution:
+          "storage.googleapis.com": 0.40
+          "compute.googleapis.com": 0.30
+          "iam.googleapis.com": 0.20
+          "cloudresourcemanager.googleapis.com": 0.10
+
+      status:
+        type: "object"
+        required: false
+        fields:
+          code:
+            type: "integer"
+            required: true
+            default: 0
+
+          message:
+            type: "string"
+            required: false
+
+  receiveTimestamp:
+    type: "datetime"
+    format: "iso8601"
+    required: true
+    description: "Time log entry was received"
+
+  resource:
+    type: "object"
+    required: true
+    description: "Monitored resource"
+    fields:
+      type:
+        type: "enum"
+        values:
+          - "gce_instance"
+          - "gcs_bucket"
+          - "service_account"
+          - "project"
+        required: true
+
+      labels:
+        type: "object"
+        required: true
+        fields:
+          project_id:
+            type: "string"
+            generator: "gcp_project_id"
+            required: true
+
+  severity:
+    type: "enum"
+    values:
+      - "DEFAULT"
+      - "DEBUG"
+      - "INFO"
+      - "NOTICE"
+      - "WARNING"
+      - "ERROR"
+      - "CRITICAL"
+    required: true
+    distribution:
+      INFO: 0.70
+      NOTICE: 0.15
+      WARNING: 0.08
+      ERROR: 0.05
+      CRITICAL: 0.02
+
+  timestamp:
+    type: "datetime"
+    format: "iso8601"
+    required: true
+    description: "Event timestamp"
+
+# Pre-defined scenarios
+scenarios:
+  vm_created:
+    protoPayload.methodName: "v1.compute.instances.insert"
+    protoPayload.serviceName: "compute.googleapis.com"
+    resource.type: "gce_instance"
+    severity: "NOTICE"
+
+  bucket_created:
+    protoPayload.methodName: "storage.buckets.create"
+    protoPayload.serviceName: "storage.googleapis.com"
+    resource.type: "gcs_bucket"
+    severity: "NOTICE"
+
+  object_uploaded:
+    protoPayload.methodName: "storage.objects.create"
+    protoPayload.serviceName: "storage.googleapis.com"
+    resource.type: "gcs_bucket"
+    severity: "INFO"
+
+  iam_policy_changed:
+    protoPayload.methodName: "SetIamPolicy"
+    protoPayload.serviceName: "cloudresourcemanager.googleapis.com"
+    severity: "NOTICE"
+
+  service_account_created:
+    protoPayload.methodName: "iam.projects.serviceAccounts.create"
+    protoPayload.serviceName: "iam.googleapis.com"
+    resource.type: "service_account"
+    severity: "NOTICE"
+
+# Correlation rules
+correlation:
+  - field: "resource.labels.project_id"
+    scope: "global"
+    description: "Same GCP project for all logs"

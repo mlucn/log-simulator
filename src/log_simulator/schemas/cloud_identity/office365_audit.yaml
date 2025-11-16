@@ -1,0 +1,346 @@
+# Office 365 Unified Audit Log Schema
+# Based on Office 365 Management Activity API
+# Reference: https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema
+
+schema_version: "1.0"
+log_type: "office365_audit"
+description: "Office 365 Unified Audit Log from Management Activity API"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+
+# Field definitions
+fields:
+  CreationTime:
+    type: "datetime"
+    format: "iso8601"
+    required: true
+    description: "UTC timestamp when the log was generated"
+
+  Id:
+    type: "uuid"
+    generator: "uuid4"
+    required: true
+    description: "Unique identifier for the audit record"
+
+  Operation:
+    type: "enum"
+    values:
+      - "UserLoggedIn"
+      - "UserLoginFailed"
+      - "FileAccessed"
+      - "FileModified"
+      - "FileDeleted"
+      - "FileSyncDownloadedFull"
+      - "MailItemsAccessed"
+      - "SendMail"
+      - "MailboxLogin"
+      - "Set-Mailbox"
+      - "New-InboxRule"
+      - "SearchCreated"
+      - "SearchExported"
+    required: true
+    description: "Operation or activity name"
+    distribution:
+      UserLoggedIn: 0.35
+      FileAccessed: 0.25
+      MailItemsAccessed: 0.15
+      SendMail: 0.10
+      FileModified: 0.05
+      UserLoginFailed: 0.03
+      FileDeleted: 0.02
+      MailboxLogin: 0.02
+      Set-Mailbox: 0.01
+      New-InboxRule: 0.01
+      SearchCreated: 0.005
+      SearchExported: 0.005
+
+  OrganizationId:
+    type: "uuid"
+    generator: "uuid4"
+    required: true
+    description: "GUID for the organization's Office 365 tenant"
+
+  RecordType:
+    type: "integer"
+    required: true
+    description: "Type of operation indicated by the record"
+    correlation: "Operation"
+    # Common record types: 1=ExchangeAdmin, 2=ExchangeItem, 6=SharePoint, 8=AzureAD, 15=SharePointFileOperation
+
+  ResultStatus:
+    type: "enum"
+    values:
+      - "Success"
+      - "PartiallySucceeded"
+      - "Failed"
+    required: false
+    description: "Result of the operation"
+    distribution:
+      Success: 0.90
+      Failed: 0.08
+      PartiallySucceeded: 0.02
+
+  UserKey:
+    type: "string"
+    generator: "custom_id"
+    params:
+      prefix: "1003BFFD"
+      length: 24
+    required: true
+    description: "Unique identifier for the user"
+
+  UserType:
+    type: "integer"
+    required: true
+    description: "Type of user (0=Regular, 2=Admin, 4=System)"
+    distribution:
+      0: 0.85
+      2: 0.10
+      4: 0.05
+
+  Version:
+    type: "integer"
+    required: false
+    description: "Schema version"
+    default: 1
+
+  Workload:
+    type: "enum"
+    values:
+      - "Exchange"
+      - "SharePoint"
+      - "OneDrive"
+      - "AzureActiveDirectory"
+      - "SecurityComplianceCenter"
+      - "MicrosoftTeams"
+      - "ThreatIntelligence"
+      - "PowerBI"
+    required: true
+    description: "Office 365 service where activity occurred"
+    distribution:
+      Exchange: 0.35
+      SharePoint: 0.25
+      OneDrive: 0.15
+      AzureActiveDirectory: 0.10
+      MicrosoftTeams: 0.08
+      SecurityComplianceCenter: 0.04
+      PowerBI: 0.02
+      ThreatIntelligence: 0.01
+
+  ClientIP:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the device used"
+
+  UserId:
+    type: "email"
+    generator: "email"
+    required: true
+    description: "UPN of the user who performed the action"
+
+  Scope:
+    type: "enum"
+    values:
+      - "online"
+      - "onprem"
+    required: false
+    description: "Event scope (online or on-premises)"
+    default: "online"
+
+  # Exchange-specific fields (when Workload=Exchange)
+  ExchangeMetaData:
+    type: "object"
+    required: false
+    fields:
+      MessageID:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "<"
+          length: 32
+        required: false
+
+      Subject:
+        type: "string"
+        generator: "email_subject"
+        required: false
+
+      Recipients:
+        type: "array"
+        required: false
+        min_items: 1
+        max_items: 5
+        item:
+          type: "email"
+          generator: "email"
+
+      Sender:
+        type: "email"
+        generator: "email"
+        required: false
+
+  # SharePoint/OneDrive-specific fields
+  SharePointMetaData:
+    type: "object"
+    required: false
+    fields:
+      SiteUrl:
+        type: "string"
+        required: false
+        default: "https://contoso.sharepoint.com/sites/team"
+
+      SourceFileName:
+        type: "string"
+        generator: "filename"
+        required: false
+
+      SourceRelativeUrl:
+        type: "string"
+        required: false
+
+      ItemType:
+        type: "enum"
+        values:
+          - "File"
+          - "Folder"
+          - "Site"
+        required: false
+
+  # AzureAD-specific fields
+  AzureActiveDirectoryEventType:
+    type: "integer"
+    required: false
+    description: "Type of Azure AD event (1=UserLogin)"
+
+  ExtendedProperties:
+    type: "array"
+    required: false
+    description: "Additional event properties"
+    min_items: 0
+    max_items: 3
+    item:
+      type: "object"
+      fields:
+        Name:
+          type: "string"
+          required: true
+
+        Value:
+          type: "string"
+          required: true
+
+  ModifiedProperties:
+    type: "array"
+    required: false
+    description: "Properties that were modified"
+    min_items: 0
+    max_items: 3
+    item:
+      type: "object"
+      fields:
+        Name:
+          type: "string"
+          required: true
+
+        NewValue:
+          type: "string"
+          required: true
+
+        OldValue:
+          type: "string"
+          required: false
+
+# Pre-defined scenarios
+scenarios:
+  user_login_success:
+    Operation: "UserLoggedIn"
+    Workload: "AzureActiveDirectory"
+    RecordType: 8
+    ResultStatus: "Success"
+    AzureActiveDirectoryEventType: 1
+
+  user_login_failed:
+    Operation: "UserLoginFailed"
+    Workload: "AzureActiveDirectory"
+    RecordType: 8
+    ResultStatus: "Failed"
+    AzureActiveDirectoryEventType: 1
+
+  file_accessed:
+    Operation: "FileAccessed"
+    Workload: "OneDrive"
+    RecordType: 6
+    ResultStatus: "Success"
+    SharePointMetaData:
+      ItemType: "File"
+      SourceFileName: "Q4_Report.xlsx"
+
+  file_modified:
+    Operation: "FileModified"
+    Workload: "SharePoint"
+    RecordType: 6
+    ResultStatus: "Success"
+    SharePointMetaData:
+      ItemType: "File"
+
+  file_deleted:
+    Operation: "FileDeleted"
+    Workload: "OneDrive"
+    RecordType: 6
+    ResultStatus: "Success"
+    SharePointMetaData:
+      ItemType: "File"
+
+  email_sent:
+    Operation: "SendMail"
+    Workload: "Exchange"
+    RecordType: 2
+    ResultStatus: "Success"
+    ExchangeMetaData:
+      Subject: "Project Update"
+
+  mailbox_accessed:
+    Operation: "MailItemsAccessed"
+    Workload: "Exchange"
+    RecordType: 2
+    ResultStatus: "Success"
+
+  inbox_rule_created:
+    Operation: "New-InboxRule"
+    Workload: "Exchange"
+    RecordType: 1
+    ResultStatus: "Success"
+    UserType: 0
+
+  admin_mailbox_change:
+    Operation: "Set-Mailbox"
+    Workload: "Exchange"
+    RecordType: 1
+    ResultStatus: "Success"
+    UserType: 2
+
+  compliance_search:
+    Operation: "SearchCreated"
+    Workload: "SecurityComplianceCenter"
+    RecordType: 8
+    ResultStatus: "Success"
+    UserType: 2
+
+# Correlation rules
+correlation:
+  - field: "OrganizationId"
+    scope: "global"
+    description: "Same organization for all logs"
+
+  - field: "UserKey"
+    scope: "session"
+    correlation_with: "UserId"
+    description: "User key must match user ID"
+
+  - field: "RecordType"
+    scope: "event"
+    correlation_with: "Operation"
+    description: "Record type corresponds to operation"

@@ -310,3 +310,241 @@ class FieldGenerator:
         sigma = 1.0
         value = random.lognormvariate(mu, sigma)
         return round(max(min_time, min(value, max_time)), 3)
+
+    @staticmethod
+    def email_subject() -> str:
+        """Generate a random email subject line."""
+        subjects = [
+            "Project Update",
+            "Meeting Tomorrow",
+            "Q4 Report",
+            "Action Required",
+            "Weekly Status",
+            "Follow Up",
+            "Question about the proposal",
+            "Budget Review",
+            "Team Lunch",
+            "Important Announcement",
+            "Schedule Change",
+            "Document Review",
+            "Approval Needed",
+            "Thank You",
+            "Next Steps",
+            "Quarterly Results",
+            "Policy Update",
+            "Training Session",
+            "Feedback Request",
+            "System Maintenance"
+        ]
+        return random.choice(subjects)
+
+    @staticmethod
+    def filename() -> str:
+        """Generate a random filename."""
+        names = [
+            "report", "document", "presentation", "spreadsheet",
+            "budget", "proposal", "summary", "analysis", "data",
+            "meeting_notes", "project_plan", "requirements", "spec"
+        ]
+        extensions = [
+            ".docx", ".xlsx", ".pptx", ".pdf", ".txt",
+            ".csv", ".json", ".xml", ".zip", ".png"
+        ]
+        name = random.choice(names)
+        ext = random.choice(extensions)
+
+        # Sometimes add date or version
+        if random.random() < 0.3:
+            suffix = f"_{random.choice(['2024', '2025', 'Q4', 'final', 'v2', 'draft'])}"
+            return f"{name}{suffix}{ext}"
+        return f"{name}{ext}"
+
+    @staticmethod
+    def referer() -> str:
+        """Generate a random HTTP referer."""
+        if random.random() < 0.3:
+            return "-"  # No referer
+
+        domains = ["example.com", "google.com", "github.com", "stackoverflow.com"]
+        paths = ["/", "/search", "/dashboard", "/docs", "/api"]
+        domain = random.choice(domains)
+        path = random.choice(paths)
+        return f"https://{domain}{path}"
+
+    @staticmethod
+    def process_name() -> str:
+        """Generate a random process name."""
+        processes = [
+            "chrome.exe", "firefox.exe", "msedge.exe", "explorer.exe",
+            "svchost.exe", "System", "cmd.exe", "powershell.exe",
+            "notepad.exe", "Teams.exe", "Outlook.exe", "Excel.exe",
+            "Word.exe", "java.exe", "python.exe", "node.exe",
+            "code.exe", "slack.exe", "zoom.exe"
+        ]
+        return random.choice(processes)
+
+    @staticmethod
+    def command_line() -> str:
+        """Generate a random command line."""
+        commands = [
+            '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --type=renderer',
+            'C:\\Windows\\System32\\svchost.exe -k NetworkService',
+            'powershell.exe -NoProfile -Command Get-Process',
+            'cmd.exe /c "dir C:\\Users"',
+            '"C:\\Program Files\\Microsoft Office\\Office16\\OUTLOOK.EXE"',
+            'python.exe script.py --verbose',
+            'node.exe server.js',
+            '"C:\\Windows\\Explorer.EXE"',
+            'notepad.exe C:\\Users\\user\\Documents\\file.txt'
+        ]
+        return random.choice(commands)
+
+    @staticmethod
+    def sha256() -> str:
+        """Generate a random SHA256 hash."""
+        return ''.join(random.choices('0123456789abcdef', k=64))
+
+    @staticmethod
+    def md5() -> str:
+        """Generate a random MD5 hash."""
+        return ''.join(random.choices('0123456789abcdef', k=32))
+
+    @staticmethod
+    def domain_name() -> str:
+        """Generate a random domain name."""
+        domains = [
+            "example.com", "test.com", "sample.org", "demo.net",
+            "google.com", "microsoft.com", "amazon.com", "github.com",
+            "api.service.com", "cdn.example.net", "mail.company.com",
+            "update.vendor.com", "download.software.org"
+        ]
+        return random.choice(domains)
+
+    @staticmethod
+    def file_path() -> str:
+        """Generate a random Windows file path."""
+        paths = [
+            "C:\\Users\\user\\Documents\\report.docx",
+            "C:\\Users\\user\\Downloads\\setup.exe",
+            "C:\\Windows\\System32\\config\\system",
+            "C:\\Program Files\\Application\\app.exe",
+            "C:\\Users\\Public\\Desktop\\file.txt",
+            "C:\\Temp\\output.log",
+            "C:\\ProgramData\\vendor\\data.json",
+            "C:\\Users\\user\\AppData\\Local\\Temp\\tmp.dat",
+            "D:\\Projects\\source\\main.py"
+        ]
+        return random.choice(paths)
+
+    @staticmethod
+    def detection_name() -> str:
+        """Generate a random security detection name."""
+        detections = [
+            "Suspicious PowerShell Execution",
+            "Malicious Process Detected",
+            "Credential Dumping Attempt",
+            "Lateral Movement Activity",
+            "Ransomware Behavior",
+            "Privilege Escalation",
+            "Malware Communication",
+            "Suspicious Network Connection",
+            "File Encryption Activity",
+            "Registry Persistence",
+            "Suspicious Script Execution",
+            "Command and Control Traffic"
+        ]
+        return random.choice(detections)
+
+    @staticmethod
+    def registry_key() -> str:
+        """Generate a random Windows registry key."""
+        keys = [
+            "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+            "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "HKLM\\SYSTEM\\CurrentControlSet\\Services",
+            "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows",
+            "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
+            "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+        ]
+        return random.choice(keys)
+
+    @staticmethod
+    def aws_user_agent() -> str:
+        """Generate a random AWS user agent."""
+        agents = [
+            "aws-cli/2.13.25 Python/3.11.5 Linux/5.15.0 exe/x86_64.ubuntu.22",
+            "aws-sdk-go/1.44.327 (go1.20.7; linux; amd64)",
+            "Boto3/1.28.55 Python/3.11.5 Linux/5.15.0",
+            "aws-sdk-java/2.20.140 Linux/5.15.0",
+            "[S3Console/0.4]",
+            "console.amazonaws.com",
+            "AWS Internal"
+        ]
+        return random.choice(agents)
+
+    @staticmethod
+    def aws_principal_id() -> str:
+        """Generate a random AWS principal ID."""
+        prefix = random.choice(["AIDAI", "AROA", "AGPA"])
+        suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=17))
+        return f"{prefix}{suffix}"
+
+    @staticmethod
+    def aws_arn() -> str:
+        """Generate a random AWS ARN."""
+        account_id = FieldGenerator.aws_account_id()
+        resource_types = [
+            ("iam", "user", "username"),
+            ("iam", "role", "rolename"),
+            ("s3", "", "bucket-name"),
+            ("ec2", "instance", "i-"),
+            ("lambda", "function", "function-name")
+        ]
+        service, res_type, prefix = random.choice(resource_types)
+
+        if res_type:
+            if prefix.startswith("i-"):
+                resource = f"{prefix}{''.join(random.choices(string.hexdigits.lower(), k=17))}"
+                return f"arn:aws:{service}:us-east-1:{account_id}:{res_type}/{resource}"
+            else:
+                resource = f"{prefix}{random.randint(1, 9999)}"
+                return f"arn:aws:{service}::{account_id}:{res_type}/{resource}"
+        else:
+            return f"arn:aws:{service}:::{prefix}{random.randint(1000, 9999)}"
+
+    @staticmethod
+    def aws_account_id() -> str:
+        """Generate a random AWS account ID (12 digits)."""
+        return ''.join(random.choices(string.digits, k=12))
+
+    @staticmethod
+    def aws_resource_arn() -> str:
+        """Generate a random AWS resource ARN."""
+        return FieldGenerator.aws_arn()
+
+    @staticmethod
+    def gcp_project_id() -> str:
+        """Generate a random GCP project ID."""
+        adjective = random.choice(["bright", "cool", "fast", "smart", "quick"])
+        noun = random.choice(["cloud", "data", "app", "service", "platform"])
+        number = random.randint(100, 999)
+        return f"{adjective}-{noun}-{number}"
+
+    @staticmethod
+    def gcp_resource_name() -> str:
+        """Generate a random GCP resource name."""
+        project_id = FieldGenerator.gcp_project_id()
+        resource_types = [
+            ("instances", "instance-"),
+            ("buckets", "bucket-"),
+            ("serviceAccounts", "sa-")
+        ]
+        res_type, prefix = random.choice(resource_types)
+        resource_id = f"{prefix}{random.randint(1000, 9999)}"
+        
+        if res_type == "instances":
+            zone = random.choice(["us-central1-a", "us-east1-b", "europe-west1-c"])
+            return f"projects/{project_id}/zones/{zone}/{res_type}/{resource_id}"
+        else:
+            return f"projects/{project_id}/{res_type}/{resource_id}"
