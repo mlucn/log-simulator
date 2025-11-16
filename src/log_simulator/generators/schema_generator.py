@@ -277,6 +277,18 @@ class SchemaBasedGenerator:
         elif generator == 'gcp_resource_name':
             return self.field_gen.gcp_resource_name()
 
+        elif generator == 'sysmon_guid':
+            return self.field_gen.sysmon_guid()
+
+        elif generator == 'windows_image_path':
+            return self.field_gen.windows_image_path()
+
+        elif generator == 'windows_user':
+            return self.field_gen.windows_user()
+
+        elif generator == 'sysmon_hashes':
+            return self.field_gen.sysmon_hashes()
+
         else:
             return field_spec.get('default', 'default_value')
 

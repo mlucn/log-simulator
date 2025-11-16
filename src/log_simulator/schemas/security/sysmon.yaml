@@ -1,0 +1,264 @@
+# Sysmon (System Monitor) Event Log Schema
+# Based on Windows Sysmon v15+
+# Reference: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+
+schema_version: "1.0"
+log_type: "sysmon"
+description: "Windows Sysmon event logs for system monitoring"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: true
+
+# Field definitions
+fields:
+  EventID:
+    type: "enum"
+    values:
+      - 1   # Process creation
+      - 3   # Network connection
+      - 7   # Image loaded
+      - 8   # CreateRemoteThread
+      - 10  # ProcessAccess
+      - 11  # FileCreate
+      - 12  # RegistryEvent (Object create and delete)
+      - 13  # RegistryEvent (Value Set)
+      - 22  # DNSEvent
+      - 23  # FileDelete
+    required: true
+    description: "Sysmon event type"
+    distribution:
+      1: 0.35
+      3: 0.25
+      11: 0.15
+      22: 0.10
+      7: 0.05
+      13: 0.04
+      10: 0.03
+      8: 0.02
+      12: 0.005
+      23: 0.005
+
+  UtcTime:
+    type: "datetime"
+    format: "iso8601"
+    required: true
+    description: "Event timestamp in UTC"
+
+  ProcessGuid:
+    type: "string"
+    generator: "sysmon_guid"
+    required: true
+    description: "Process GUID"
+
+  ProcessId:
+    type: "integer"
+    required: true
+    params:
+      min: 4
+      max: 65535
+
+  Image:
+    type: "string"
+    generator: "windows_image_path"
+    required: true
+    description: "Full path of the process executable"
+
+  CommandLine:
+    type: "string"
+    generator: "command_line"
+    required: false
+    description: "Process command line"
+
+  User:
+    type: "string"
+    generator: "windows_user"
+    required: true
+    description: "User account (DOMAIN\\User format)"
+
+  IntegrityLevel:
+    type: "enum"
+    values:
+      - "Low"
+      - "Medium"
+      - "High"
+      - "System"
+    required: false
+    distribution:
+      Medium: 0.70
+      High: 0.15
+      System: 0.10
+      Low: 0.05
+
+  ParentProcessGuid:
+    type: "string"
+    generator: "sysmon_guid"
+    required: false
+    description: "Parent process GUID"
+
+  ParentProcessId:
+    type: "integer"
+    required: false
+    params:
+      min: 4
+      max: 65535
+
+  ParentImage:
+    type: "string"
+    generator: "windows_image_path"
+    required: false
+    description: "Parent process image path"
+
+  ParentCommandLine:
+    type: "string"
+    generator: "command_line"
+    required: false
+
+  # Network connection fields (Event ID 3)
+  SourceIp:
+    type: "ipv4"
+    generator: "ipv4"
+    required: false
+    description: "Source IP address"
+
+  SourcePort:
+    type: "integer"
+    required: false
+    params:
+      min: 1024
+      max: 65535
+
+  DestinationIp:
+    type: "ipv4"
+    generator: "ipv4"
+    required: false
+
+  DestinationPort:
+    type: "integer"
+    required: false
+    params:
+      min: 1
+      max: 65535
+
+  Protocol:
+    type: "enum"
+    values:
+      - "tcp"
+      - "udp"
+    required: false
+
+  # File operations (Event ID 11, 23)
+  TargetFilename:
+    type: "string"
+    generator: "file_path"
+    required: false
+
+  # Registry operations (Event ID 12, 13)
+  TargetObject:
+    type: "string"
+    generator: "registry_key"
+    required: false
+
+  # DNS queries (Event ID 22)
+  QueryName:
+    type: "string"
+    generator: "domain_name"
+    required: false
+
+  QueryResults:
+    type: "string"
+    required: false
+    description: "DNS query results (IPs)"
+
+  # Hashes
+  Hashes:
+    type: "string"
+    generator: "sysmon_hashes"
+    required: false
+    description: "File hashes (MD5, SHA256, etc.)"
+
+  Computer:
+    type: "string"
+    generator: "device_name"
+    required: true
+    description: "Computer name"
+
+  LogonGuid:
+    type: "string"
+    generator: "sysmon_guid"
+    required: false
+
+# Pre-defined scenarios
+scenarios:
+  process_creation:
+    EventID: 1
+    Image: "C:\\Windows\\System32\\cmd.exe"
+    CommandLine: 'cmd.exe /c "whoami"'
+    User: "WORKSTATION\\user"
+    IntegrityLevel: "Medium"
+
+  powershell_execution:
+    EventID: 1
+    Image: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    CommandLine: "powershell.exe -NoProfile -Command Get-Process"
+    User: "WORKSTATION\\user"
+    IntegrityLevel: "Medium"
+
+  suspicious_powershell:
+    EventID: 1
+    Image: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    CommandLine: "powershell.exe -enc SGVsbG8gV29ybGQ="
+    User: "WORKSTATION\\user"
+    IntegrityLevel: "High"
+
+  network_connection_https:
+    EventID: 3
+    Image: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    Protocol: "tcp"
+    DestinationPort: 443
+
+  network_connection_suspicious:
+    EventID: 3
+    Image: "C:\\Windows\\System32\\cmd.exe"
+    Protocol: "tcp"
+    DestinationPort: 4444
+
+  file_creation:
+    EventID: 11
+    Image: "C:\\Windows\\System32\\notepad.exe"
+    TargetFilename: "C:\\Users\\user\\Documents\\file.txt"
+
+  file_delete:
+    EventID: 23
+    Image: "C:\\Windows\\System32\\cmd.exe"
+    TargetFilename: "C:\\Windows\\Temp\\suspicious.exe"
+
+  registry_modification:
+    EventID: 13
+    Image: "C:\\Windows\\System32\\reg.exe"
+    TargetObject: "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\Persistence"
+
+  dns_query:
+    EventID: 22
+    Image: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    QueryName: "example.com"
+
+  process_injection:
+    EventID: 8
+    Image: "C:\\Windows\\System32\\cmd.exe"
+    IntegrityLevel: "High"
+
+  lsass_access:
+    EventID: 10
+    Image: "C:\\Windows\\System32\\lsass.exe"
+    TargetImage: "C:\\Windows\\System32\\lsass.exe"
+
+# Correlation rules
+correlation:
+  - field: "Computer"
+    scope: "global"
+    description: "Same computer for all logs"
+
+  - field: "ProcessGuid"
+    scope: "session"
+    description: "Process GUID consistent across related events"

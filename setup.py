@@ -21,9 +21,9 @@ else:
 
 setup(
     name="log-simulator",
-    version="0.1.0",
+    version="0.2.0",
     author="mlucn",
-    description="Generate simulated logs and mock up endpoints",
+    description="Generate simulated logs for testing SIEM, log parsers, and security research",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/mlucn/log-simulator",

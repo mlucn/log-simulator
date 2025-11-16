@@ -548,3 +548,45 @@ class FieldGenerator:
             return f"projects/{project_id}/zones/{zone}/{res_type}/{resource_id}"
         else:
             return f"projects/{project_id}/{res_type}/{resource_id}"
+
+    @staticmethod
+    def sysmon_guid() -> str:
+        """Generate a Sysmon-style GUID."""
+        # Format: {XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}
+        return '{' + FieldGenerator.uuid4().upper() + '}'
+
+    @staticmethod
+    def windows_image_path() -> str:
+        """Generate a random Windows executable path."""
+        paths = [
+            "C:\\Windows\\System32\\cmd.exe",
+            "C:\\Windows\\System32\\powershell.exe",
+            "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "C:\\Windows\\explorer.exe",
+            "C:\\Windows\\System32\\svchost.exe",
+            "C:\\Windows\\System32\\rundll32.exe",
+            "C:\\Windows\\System32\\wscript.exe",
+            "C:\\Windows\\System32\\cscript.exe",
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files\\Microsoft Office\\Office16\\EXCEL.EXE",
+            "C:\\Program Files\\Microsoft Office\\Office16\\WINWORD.EXE",
+            "C:\\Program Files\\Microsoft Office\\Office16\\OUTLOOK.EXE",
+            "C:\\Windows\\System32\\msiexec.exe",
+            "C:\\Windows\\System32\\reg.exe",
+            "C:\\Windows\\System32\\net.exe"
+        ]
+        return random.choice(paths)
+
+    @staticmethod
+    def windows_user() -> str:
+        """Generate a Windows user in DOMAIN\\User format."""
+        domains = ["WORKSTATION", "CORP", "DOMAIN", "NT AUTHORITY"]
+        users = ["user", "admin", "Administrator", "SYSTEM", "service_account"]
+        return f"{random.choice(domains)}\\{random.choice(users)}"
+
+    @staticmethod
+    def sysmon_hashes() -> str:
+        """Generate Sysmon-style hash string."""
+        md5 = FieldGenerator.md5()
+        sha256 = FieldGenerator.sha256()
+        return f"MD5={md5},SHA256={sha256}"
