@@ -19,21 +19,22 @@ A Python-based tool that generates realistic, configurable log data across multi
 ### Cloud Identity & Access
 - ✅ **Google Workspace** - Audit logs from Admin SDK Reports API
 - ✅ **Azure AD / Microsoft Entra ID** - Sign-in and audit logs
-- 🔄 **Office 365** - Unified Audit Log (coming soon)
-- 🔄 **Microsoft Graph API** - Audit logs (coming soon)
+- ✅ **Office 365** - Unified Audit Log with Exchange, SharePoint, Teams events
+- ✅ **Microsoft Graph API** - Audit logs (via Azure AD schema)
 
 ### Cloud Infrastructure
-- 🔄 **Google Cloud Audit** - Cloud Logging format (coming soon)
-- 🔄 **AWS CloudTrail** - Management events (coming soon)
+- ✅ **Google Cloud Audit** - Cloud Logging format with compute, storage, IAM
+- ✅ **AWS CloudTrail** - Management events including IAM, EC2, S3
 - 🔄 **Azure Activity Logs** - Resource events (coming soon)
 
 ### Security Tools
-- 🔄 **CrowdStrike Falcon EDR** - FDR events (coming soon)
-- 🔄 **Sysmon** - Windows system monitoring (coming soon)
+- ✅ **CrowdStrike Falcon EDR** - FDR events with MITRE ATT&CK mapping
+- ✅ **Sysmon** - Windows system monitoring (Events 1, 3, 7, 8, 10, 11, 12, 13, 22, 23)
+- 🔄 **Windows Event Logs** - Security, System, Application (coming soon)
 
 ### Web Servers
 - ✅ **Nginx** - Access logs (JSON and combined format)
-- ✅ **Apache** - Access logs (coming soon)
+- ✅ **Apache** - Access logs (Common and combined formats)
 
 ## Installation
 
@@ -234,38 +235,105 @@ scenarios:
 
 See existing schemas in `src/log_simulator/schemas/` for complete examples.
 
+## Advanced Features
+
+### Template-Based Generation
+
+Use real log samples as templates for even more realistic log generation:
+
+```python
+from log_simulator import TemplateBasedGenerator
+
+# Initialize with template directory
+generator = TemplateBasedGenerator('templates/security')
+
+# Generate from template
+logs = generator.generate_from_template(
+    template_path='crowdstrike/T1059.001_powershell.json',
+    count=100
+)
+
+# Generate attack scenario
+attack_logs = generator.generate_attack_scenario(
+    techniques=['T1059.001', 'T1003.001', 'T1547.001'],
+    count_per_technique=10
+)
+```
+
+See [Atomic Red Team Integration Guide](docs/ATOMIC_RED_TEAM_INTEGRATION.md) for creating templates from real security tool logs.
+
+### Multi-Log Correlation
+
+Generate correlated logs across multiple systems:
+
+```bash
+# Run correlation scenario examples
+python examples/correlation_scenarios.py
+```
+
+Scenarios include:
+- **Normal Workday**: User login, Office 365 activity, file access
+- **Security Incident**: Complete attack chain from phishing to C2
+- **Cloud Resource Access**: Azure AD → AWS role assumption → EC2/S3 operations
+
+### Batch Generation
+
+Generate millions of logs efficiently:
+
+```bash
+# Create configuration
+python scripts/batch_generate.py --create-config batch_config.json
+
+# Generate from config
+python scripts/batch_generate.py --config batch_config.json
+
+# Quick generation
+python scripts/batch_generate.py --quick crowdstrike_fdr 1000000 --output ./logs
+```
+
+Batch generation automatically:
+- Splits output into manageable chunks (default: 10,000 logs/file)
+- Distributes logs across time ranges
+- Handles memory efficiently for large volumes
+- Supports multiple log sources in parallel
+
 ## Roadmap
 
-### Phase 1: Foundation (Current)
+### Phase 1: Foundation ✅ COMPLETED
 - [x] Project structure and architecture
 - [x] Schema-based generator
 - [x] Google Workspace schema
 - [x] Azure AD schema
 - [x] Nginx schema
-- [x] Field generators
+- [x] Field generators (30+)
 
-### Phase 2: Expansion
-- [ ] Office 365 Unified Audit Log
-- [ ] AWS CloudTrail
-- [ ] Google Cloud Audit Logs
-- [ ] CrowdStrike FDR
-- [ ] Apache access logs
-- [ ] Template-based generation
+### Phase 2: Expansion ✅ COMPLETED
+- [x] Office 365 Unified Audit Log
+- [x] AWS CloudTrail
+- [x] Google Cloud Audit Logs
+- [x] CrowdStrike FDR
+- [x] Apache access logs
+- [x] Sysmon
+- [x] Template-based generation
+- [x] CLI tool
+- [x] Batch generation
 
-### Phase 3: Advanced Features
-- [ ] Atomic Red Team integration
-- [ ] MITRE ATT&CK mapping
-- [ ] Multi-log correlation scenarios
-- [ ] API endpoint mocking
-- [ ] CLI tool
-- [ ] Web UI
+### Phase 3: Advanced Features ✅ COMPLETED
+- [x] Atomic Red Team integration (documented)
+- [x] MITRE ATT&CK mapping (in schemas)
+- [x] Multi-log correlation scenarios
+- [x] Setup.py for pip installation
+- [x] Unit tests (40+ test cases)
+- [ ] API endpoint mocking (coming soon)
+- [ ] Web UI (coming soon)
 
-### Phase 4: Enterprise Features
+### Phase 4: Enterprise Features (Next)
 - [ ] Custom plugin system
 - [ ] Log replay functionality
 - [ ] Performance optimization
-- [ ] Bulk generation (millions of logs)
 - [ ] Stream to SIEM endpoints
+- [ ] Kubernetes deployment
+- [ ] Docker containers
 
 ## Use Cases
 
@@ -326,11 +394,23 @@ See [LICENSE](LICENSE) file for details.
 
 ## Resources
 
+### Documentation
 - [CLAUDE.md](CLAUDE.md) - AI assistant development guide
+- [docs/ATOMIC_RED_TEAM_INTEGRATION.md](docs/ATOMIC_RED_TEAM_INTEGRATION.md) - Complete guide for ART integration
 - [docs/SAMPLE_LOG_RESOURCES.md](docs/SAMPLE_LOG_RESOURCES.md) - Sample log sources and resources
+
+### Example Scripts
+- [examples/generate_google_workspace.py](examples/generate_google_workspace.py) - Google Workspace examples
+- [examples/generate_cloudtrail.py](examples/generate_cloudtrail.py) - AWS CloudTrail examples
+- [examples/generate_crowdstrike.py](examples/generate_crowdstrike.py) - CrowdStrike FDR examples
+- [examples/correlation_scenarios.py](examples/correlation_scenarios.py) - Multi-log correlation
+- [scripts/batch_generate.py](scripts/batch_generate.py) - High-volume batch generation
+
+### External Resources
 - [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team) - Attack simulation framework
 - [Elastic Common Schema](https://www.elastic.co/guide/en/ecs/current/index.html) - ECS documentation
 - [MITRE ATT&CK](https://attack.mitre.org/) - ATT&CK framework
+- [Splunk Attack Data](https://github.com/splunk/attack_data) - Real attack datasets
 
 ## Acknowledgments
 
@@ -340,9 +420,19 @@ See [LICENSE](LICENSE) file for details.
 
 ---
 
-**Status**: Early development - Active development in progress
+**Status**: Production-ready - Phases 1-3 complete!
 
-**Version**: 0.1.0
+**Version**: 0.2.0
+
+**Features**:
+- 9 log format schemas
+- 35+ field generators
+- Template-based generation
+- CLI tool
+- Batch generation (millions of logs)
+- Multi-log correlation
+- 40+ unit tests
+- Atomic Red Team integration guide
 
 **Author**: mlucn
 

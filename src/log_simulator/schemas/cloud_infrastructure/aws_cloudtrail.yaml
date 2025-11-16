@@ -1,0 +1,299 @@
+# AWS CloudTrail Log Schema
+# Based on AWS CloudTrail Event Reference
+# Reference: https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-event-reference.html
+
+schema_version: "1.0"
+log_type: "aws_cloudtrail"
+description: "AWS CloudTrail management and data events"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+
+# Field definitions
+fields:
+  eventVersion:
+    type: "string"
+    required: true
+    default: "1.08"
+    description: "CloudTrail event format version"
+
+  eventTime:
+    type: "datetime"
+    format: "iso8601"
+    required: true
+    description: "Date and time of the request (UTC)"
+
+  eventID:
+    type: "uuid"
+    generator: "uuid4"
+    required: true
+    description: "Unique identifier for the event"
+
+  eventName:
+    type: "enum"
+    values:
+      - "ConsoleLogin"
+      - "AssumeRole"
+      - "RunInstances"
+      - "TerminateInstances"
+      - "CreateBucket"
+      - "PutObject"
+      - "GetObject"
+      - "DeleteObject"
+      - "CreateUser"
+      - "DeleteUser"
+      - "AttachUserPolicy"
+      - "CreateAccessKey"
+      - "DeleteAccessKey"
+      - "PutBucketPolicy"
+      - "UpdateTrail"
+      - "CreateSecurityGroup"
+      - "AuthorizeSecurityGroupIngress"
+    required: true
+    description: "Action performed"
+    distribution:
+      ConsoleLogin: 0.15
+      AssumeRole: 0.15
+      PutObject: 0.15
+      GetObject: 0.20
+      RunInstances: 0.05
+      TerminateInstances: 0.03
+      CreateBucket: 0.02
+      DeleteObject: 0.05
+      CreateUser: 0.02
+      DeleteUser: 0.01
+      AttachUserPolicy: 0.02
+      CreateAccessKey: 0.02
+      PutBucketPolicy: 0.01
+      CreateSecurityGroup: 0.02
+      AuthorizeSecurityGroupIngress: 0.02
+      UpdateTrail: 0.01
+      DeleteAccessKey: 0.01
+
+  eventType:
+    type: "enum"
+    values:
+      - "AwsApiCall"
+      - "AwsServiceEvent"
+      - "AwsConsoleAction"
+      - "AwsConsoleSignIn"
+    required: true
+    description: "Type of event"
+    distribution:
+      AwsApiCall: 0.70
+      AwsConsoleAction: 0.15
+      AwsConsoleSignIn: 0.10
+      AwsServiceEvent: 0.05
+
+  awsRegion:
+    type: "enum"
+    values:
+      - "us-east-1"
+      - "us-east-2"
+      - "us-west-1"
+      - "us-west-2"
+      - "eu-west-1"
+      - "eu-central-1"
+      - "ap-southeast-1"
+      - "ap-northeast-1"
+    required: true
+    description: "AWS region"
+    distribution:
+      "us-east-1": 0.35
+      "us-west-2": 0.20
+      "eu-west-1": 0.15
+      "us-east-2": 0.10
+      "ap-southeast-1": 0.08
+      "eu-central-1": 0.06
+      "us-west-1": 0.03
+      "ap-northeast-1": 0.03
+
+  sourceIPAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "Source IP address"
+
+  userAgent:
+    type: "string"
+    generator: "aws_user_agent"
+    required: true
+    description: "User agent string"
+
+  errorCode:
+    type: "string"
+    required: false
+    description: "AWS error code if request failed"
+
+  errorMessage:
+    type: "string"
+    required: false
+    description: "Error message if request failed"
+
+  requestID:
+    type: "uuid"
+    generator: "uuid4"
+    required: true
+    description: "Unique ID for the AWS service request"
+
+  eventCategory:
+    type: "enum"
+    values:
+      - "Management"
+      - "Data"
+      - "Insight"
+    required: false
+    default: "Management"
+
+  userIdentity:
+    type: "object"
+    required: true
+    description: "Information about the identity that made the request"
+    fields:
+      type:
+        type: "enum"
+        values:
+          - "IAMUser"
+          - "AssumedRole"
+          - "Root"
+          - "AWSService"
+          - "FederatedUser"
+        required: true
+        distribution:
+          IAMUser: 0.40
+          AssumedRole: 0.45
+          Root: 0.02
+          AWSService: 0.10
+          FederatedUser: 0.03
+
+      principalId:
+        type: "string"
+        generator: "aws_principal_id"
+        required: true
+
+      arn:
+        type: "string"
+        generator: "aws_arn"
+        required: false
+
+      accountId:
+        type: "string"
+        generator: "aws_account_id"
+        required: true
+
+      userName:
+        type: "string"
+        generator: "username"
+        required: false
+
+  requestParameters:
+    type: "object"
+    required: false
+    description: "Parameters sent with the request"
+
+  responseElements:
+    type: "object"
+    required: false
+    description: "Response elements returned by the service"
+
+  resources:
+    type: "array"
+    required: false
+    description: "Resources accessed in the event"
+    min_items: 0
+    max_items: 3
+    item:
+      type: "object"
+      fields:
+        ARN:
+          type: "string"
+          generator: "aws_resource_arn"
+          required: true
+
+        accountId:
+          type: "string"
+          generator: "aws_account_id"
+          required: false
+
+        type:
+          type: "string"
+          required: false
+
+  recipientAccountId:
+    type: "string"
+    generator: "aws_account_id"
+    required: true
+    description: "Account ID that received the event"
+
+  sharedEventID:
+    type: "uuid"
+    generator: "uuid4"
+    required: false
+    description: "GUID for events delivered to multiple accounts"
+
+# Pre-defined scenarios
+scenarios:
+  console_login_success:
+    eventName: "ConsoleLogin"
+    eventType: "AwsConsoleSignIn"
+    userIdentity.type: "IAMUser"
+    errorCode: null
+
+  console_login_failed:
+    eventName: "ConsoleLogin"
+    eventType: "AwsConsoleSignIn"
+    userIdentity.type: "IAMUser"
+    errorCode: "Failed authentication"
+    errorMessage: "Invalid username or password"
+
+  ec2_instance_launch:
+    eventName: "RunInstances"
+    eventType: "AwsApiCall"
+    awsRegion: "us-east-1"
+    eventCategory: "Management"
+
+  s3_object_upload:
+    eventName: "PutObject"
+    eventType: "AwsApiCall"
+    eventCategory: "Data"
+
+  s3_bucket_policy_change:
+    eventName: "PutBucketPolicy"
+    eventType: "AwsApiCall"
+    eventCategory: "Management"
+
+  iam_user_created:
+    eventName: "CreateUser"
+    eventType: "AwsApiCall"
+    userIdentity.type: "IAMUser"
+
+  assume_role:
+    eventName: "AssumeRole"
+    eventType: "AwsApiCall"
+    userIdentity.type: "AssumedRole"
+
+  security_group_modified:
+    eventName: "AuthorizeSecurityGroupIngress"
+    eventType: "AwsApiCall"
+    awsRegion: "us-east-1"
+
+  access_key_created:
+    eventName: "CreateAccessKey"
+    eventType: "AwsApiCall"
+    userIdentity.type: "IAMUser"
+
+  root_account_activity:
+    eventName: "ConsoleLogin"
+    eventType: "AwsConsoleSignIn"
+    userIdentity.type: "Root"
+
+# Correlation rules
+correlation:
+  - field: "recipientAccountId"
+    scope: "global"
+    description: "Same AWS account for all events"
+
+  - field: "userIdentity.accountId"
+    scope: "session"
+    description: "Same account ID for user session"

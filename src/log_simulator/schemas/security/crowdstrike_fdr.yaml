@@ -1,0 +1,318 @@
+# CrowdStrike Falcon Data Replicator (FDR) Schema
+# Based on CrowdStrike Falcon EDR event format
+# Reference: https://developer.crowdstrike.com/ (requires customer access)
+
+schema_version: "1.0"
+log_type: "crowdstrike_fdr"
+description: "CrowdStrike Falcon Data Replicator EDR events"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+
+# Field definitions
+fields:
+  event_simpleName:
+    type: "enum"
+    values:
+      - "ProcessRollup2"
+      - "NetworkConnectIP4"
+      - "DnsRequest"
+      - "FileWritten"
+      - "RegistryKeyModified"
+      - "UserLogon"
+      - "UserLogoff"
+      - "SuspiciousProcess"
+      - "DetectExecution"
+      - "MalwareDetection"
+      - "ScriptExecuted"
+      - "CommandLineHistory"
+    required: true
+    description: "Event type identifier"
+    distribution:
+      ProcessRollup2: 0.35
+      NetworkConnectIP4: 0.20
+      DnsRequest: 0.15
+      FileWritten: 0.10
+      RegistryKeyModified: 0.05
+      UserLogon: 0.04
+      UserLogoff: 0.03
+      DetectExecution: 0.02
+      SuspiciousProcess: 0.02
+      MalwareDetection: 0.01
+      ScriptExecuted: 0.02
+      CommandLineHistory: 0.01
+
+  timestamp:
+    type: "datetime"
+    format: "iso8601"
+    required: true
+    description: "Event timestamp in UTC"
+
+  aid:
+    type: "string"
+    generator: "custom_id"
+    params:
+      prefix: ""
+      length: 32
+    required: true
+    description: "Agent ID (host identifier)"
+
+  cid:
+    type: "string"
+    generator: "custom_id"
+    params:
+      prefix: ""
+      length: 32
+    required: true
+    description: "Customer ID"
+
+  ComputerName:
+    type: "string"
+    generator: "device_name"
+    required: true
+    description: "Hostname"
+
+  UserName:
+    type: "string"
+    generator: "username"
+    required: false
+    description: "User associated with the event"
+
+  # Process-specific fields
+  ImageFileName:
+    type: "string"
+    required: false
+    description: "Process image file name"
+    generator: "process_name"
+
+  CommandLine:
+    type: "string"
+    required: false
+    description: "Process command line"
+    generator: "command_line"
+
+  ProcessId:
+    type: "integer"
+    required: false
+    params:
+      min: 100
+      max: 65535
+
+  ParentProcessId:
+    type: "integer"
+    required: false
+    params:
+      min: 4
+      max: 65535
+
+  SHA256HashData:
+    type: "string"
+    required: false
+    description: "SHA256 hash of file"
+    generator: "sha256"
+
+  MD5HashData:
+    type: "string"
+    required: false
+    description: "MD5 hash of file"
+    generator: "md5"
+
+  # Network-specific fields
+  RemoteIP:
+    type: "ipv4"
+    generator: "ipv4"
+    required: false
+    description: "Remote IP address"
+
+  RemotePort:
+    type: "integer"
+    required: false
+    params:
+      min: 1
+      max: 65535
+
+  LocalIP:
+    type: "ipv4"
+    generator: "ipv4"
+    required: false
+    description: "Local IP address"
+
+  LocalPort:
+    type: "integer"
+    required: false
+    params:
+      min: 1024
+      max: 65535
+
+  Protocol:
+    type: "enum"
+    values:
+      - "TCP"
+      - "UDP"
+      - "ICMP"
+    required: false
+    distribution:
+      TCP: 0.70
+      UDP: 0.25
+      ICMP: 0.05
+
+  ConnectionDirection:
+    type: "enum"
+    values:
+      - "outbound"
+      - "inbound"
+    required: false
+    distribution:
+      outbound: 0.70
+      inbound: 0.30
+
+  # DNS-specific fields
+  DomainName:
+    type: "string"
+    required: false
+    description: "DNS query domain"
+    generator: "domain_name"
+
+  # File-specific fields
+  TargetFileName:
+    type: "string"
+    required: false
+    description: "Target file path"
+    generator: "file_path"
+
+  # Detection-specific fields
+  DetectName:
+    type: "string"
+    required: false
+    description: "Detection name"
+    generator: "detection_name"
+
+  DetectDescription:
+    type: "string"
+    required: false
+    description: "Detection description"
+
+  Severity:
+    type: "integer"
+    required: false
+    description: "Severity level (1-5)"
+    params:
+      min: 1
+      max: 5
+    distribution:
+      1: 0.05
+      2: 0.15
+      3: 0.40
+      4: 0.30
+      5: 0.10
+
+  Tactic:
+    type: "enum"
+    values:
+      - "Initial Access"
+      - "Execution"
+      - "Persistence"
+      - "Privilege Escalation"
+      - "Defense Evasion"
+      - "Credential Access"
+      - "Discovery"
+      - "Lateral Movement"
+      - "Collection"
+      - "Command and Control"
+      - "Exfiltration"
+      - "Impact"
+    required: false
+    description: "MITRE ATT&CK tactic"
+
+  Technique:
+    type: "string"
+    required: false
+    description: "MITRE ATT&CK technique"
+
+  # Registry-specific fields
+  RegistryKey:
+    type: "string"
+    required: false
+    description: "Registry key path"
+    generator: "registry_key"
+
+  RegistryValue:
+    type: "string"
+    required: false
+    description: "Registry value name"
+
+# Pre-defined scenarios
+scenarios:
+  normal_process:
+    event_simpleName: "ProcessRollup2"
+    ImageFileName: "chrome.exe"
+    CommandLine: '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"'
+
+  network_connection:
+    event_simpleName: "NetworkConnectIP4"
+    Protocol: "TCP"
+    ConnectionDirection: "outbound"
+    RemotePort: 443
+
+  dns_query:
+    event_simpleName: "DnsRequest"
+    DomainName: "example.com"
+
+  file_written:
+    event_simpleName: "FileWritten"
+    TargetFileName: "C:\\Users\\user\\Documents\\report.docx"
+
+  user_logon:
+    event_simpleName: "UserLogon"
+    UserName: "john.doe"
+
+  malware_detection:
+    event_simpleName: "MalwareDetection"
+    DetectName: "Malicious PowerShell Script"
+    Severity: 5
+    Tactic: "Execution"
+    Technique: "T1059.001"
+
+  suspicious_process:
+    event_simpleName: "SuspiciousProcess"
+    ImageFileName: "powershell.exe"
+    CommandLine: "powershell.exe -enc <base64>"
+    DetectName: "Suspicious PowerShell Execution"
+    Severity: 4
+    Tactic: "Execution"
+
+  registry_modification:
+    event_simpleName: "RegistryKeyModified"
+    RegistryKey: "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
+    Tactic: "Persistence"
+
+  lateral_movement:
+    event_simpleName: "NetworkConnectIP4"
+    Protocol: "TCP"
+    RemotePort: 445
+    Tactic: "Lateral Movement"
+    Technique: "T1021.002"
+
+  c2_communication:
+    event_simpleName: "NetworkConnectIP4"
+    Protocol: "TCP"
+    RemotePort: 8080
+    Tactic: "Command and Control"
+    DetectName: "Suspicious Network Connection"
+    Severity: 4
+
+# Correlation rules
+correlation:
+  - field: "cid"
+    scope: "global"
+    description: "Same customer ID for all events"
+
+  - field: "aid"
+    scope: "session"
+    correlation_with: "ComputerName"
+    description: "Agent ID correlates with computer name"
+
+  - field: "ProcessId"
+    scope: "session"
+    description: "Process ID consistent across related events"
