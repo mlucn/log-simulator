@@ -11,4 +11,4 @@ __author__ = "mlucn"
 from .generators.schema_generator import SchemaBasedGenerator
 from .generators.template_generator import TemplateBasedGenerator
 
-__all__ = ['SchemaBasedGenerator', 'TemplateBasedGenerator']
+__all__ = ["SchemaBasedGenerator", "TemplateBasedGenerator"]

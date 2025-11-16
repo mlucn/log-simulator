@@ -8,7 +8,7 @@ import json
 import random
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional, cast
 
 import yaml
 
@@ -28,20 +28,20 @@ class SchemaBasedGenerator:
         self.schema_path = Path(schema_path)
         self.schema = self._load_schema()
         self.field_gen = FieldGenerator()
-        self.correlation_state = {}  # Store correlated values
+        self.correlation_state: dict[str, Any] = {}  # Store correlated values
 
-    def _load_schema(self) -> Dict[str, Any]:
+    def _load_schema(self) -> dict[str, Any]:
         """Load and parse the YAML schema file."""
-        with open(self.schema_path, 'r') as f:
-            return yaml.safe_load(f)
+        with open(self.schema_path) as f:
+            return cast(dict[str, Any], yaml.safe_load(f))
 
     def generate(
         self,
         count: int = 1,
         scenario: Optional[str] = None,
         base_time: Optional[datetime] = None,
-        time_spread_seconds: int = 0
-    ) -> List[Dict[str, Any]]:
+        time_spread_seconds: int = 0,
+    ) -> list[dict[str, Any]]:
         """
         Generate log entries based on the schema.
 
@@ -61,11 +61,11 @@ class SchemaBasedGenerator:
         scenario_overrides = {}
 
         # Get scenario overrides if specified
-        if scenario and 'scenarios' in self.schema:
-            if scenario in self.schema['scenarios']:
-                scenario_overrides = self.schema['scenarios'][scenario]
+        if scenario and "scenarios" in self.schema:
+            if scenario in self.schema["scenarios"]:
+                scenario_overrides = self.schema["scenarios"][scenario]
             else:
-                available = ', '.join(self.schema['scenarios'].keys())
+                available = ", ".join(self.schema["scenarios"].keys())
                 raise ValueError(
                     f"Scenario '{scenario}' not found. Available: {available}"
                 )
@@ -78,44 +78,28 @@ class SchemaBasedGenerator:
                 time_offset = 0
 
             log_entry = self._generate_single(
-                scenario_overrides,
-                base_time,
-                time_offset
+                scenario_overrides, base_time, time_offset
             )
             logs.append(log_entry)
 
         return logs
 
     def _generate_single(
-        self,
-        overrides: Dict[str, Any],
-        base_time: datetime,
-        time_offset: int
-    ) -> Dict[str, Any]:
+        self, overrides: dict[str, Any], base_time: datetime, time_offset: int
+    ) -> dict[str, Any]:
         """Generate a single log entry."""
         result = {}
-        fields = self.schema.get('fields', {})
+        fields = self.schema.get("fields", {})
 
         for field_name, field_spec in fields.items():
-            # Check for override in scenario
-            override_value = self._get_nested_override(overrides, field_name)
-
-            if override_value is not None:
-                result[field_name] = override_value
-            else:
-                result[field_name] = self._generate_field(
-                    field_name,
-                    field_spec,
-                    base_time,
-                    time_offset
-                )
+            result[field_name] = self._generate_field(
+                field_name, field_spec, base_time, time_offset, overrides, field_name
+            )
 
         return result
 
     def _get_nested_override(
-        self,
-        overrides: Dict[str, Any],
-        field_path: str
+        self, overrides: dict[str, Any], field_path: str
     ) -> Optional[Any]:
         """Get override value for a potentially nested field."""
         if field_path in overrides:
@@ -131,275 +115,299 @@ class SchemaBasedGenerator:
     def _generate_field(
         self,
         field_name: str,
-        field_spec: Dict[str, Any],
+        field_spec: dict[str, Any],
         base_time: datetime,
-        time_offset: int
+        time_offset: int,
+        overrides: Optional[dict[str, Any]] = None,
+        field_path: str = "",
     ) -> Any:
         """Generate a single field value based on its specification."""
-        field_type = field_spec.get('type')
-        required = field_spec.get('required', False)
+        if overrides is None:
+            overrides = {}
+
+        # Check if this exact field has an override
+        if field_path in overrides:
+            return overrides[field_path]
+
+        field_type = field_spec.get("type")
+        required = field_spec.get("required", False)
 
         # Handle optional fields
         if not required and random.random() > 0.7:
-            return field_spec.get('default', None)
+            return field_spec.get("default", None)
 
         # Handle different field types
-        if field_type == 'constant':
-            return field_spec['value']
+        if field_type == "constant":
+            return field_spec["value"]
 
-        elif field_type == 'datetime':
+        elif field_type == "datetime":
             return self.field_gen.datetime_iso8601(base_time, time_offset)
 
-        elif field_type == 'uuid':
+        elif field_type == "uuid":
             return self.field_gen.uuid4()
 
-        elif field_type == 'string':
+        elif field_type == "string":
             return self._generate_string_field(field_spec)
 
-        elif field_type == 'email':
+        elif field_type == "email":
             return self.field_gen.email()
 
-        elif field_type == 'ipv4':
+        elif field_type == "ipv4":
             return self.field_gen.ipv4()
 
-        elif field_type == 'integer':
+        elif field_type == "integer":
             return self._generate_integer_field(field_spec)
 
-        elif field_type == 'float':
+        elif field_type == "float":
             return self._generate_float_field(field_spec)
 
-        elif field_type == 'boolean':
+        elif field_type == "boolean":
             return self._generate_boolean_field(field_spec)
 
-        elif field_type == 'enum':
+        elif field_type == "enum":
             return self._generate_enum_field(field_spec)
 
-        elif field_type == 'object':
-            return self._generate_object_field(field_spec, base_time, time_offset)
+        elif field_type == "object":
+            return self._generate_object_field(
+                field_spec, base_time, time_offset, overrides, field_path
+            )
 
-        elif field_type == 'array':
-            return self._generate_array_field(field_spec, base_time, time_offset)
+        elif field_type == "array":
+            return self._generate_array_field(
+                field_spec, base_time, time_offset, overrides, field_path
+            )
 
         else:
             # Default to string
             return f"field_{field_name}"
 
-    def _generate_string_field(self, field_spec: Dict[str, Any]) -> str:
+    def _generate_string_field(self, field_spec: dict[str, Any]) -> str:
         """Generate a string field value."""
-        generator = field_spec.get('generator', 'default')
+        generator = field_spec.get("generator", "default")
 
-        if generator == 'number_string':
-            params = field_spec.get('params', {})
-            length = params.get('length', 16)
+        if generator == "number_string":
+            params = field_spec.get("params", {})
+            length = params.get("length", 16)
             return self.field_gen.number_string(length)
 
-        elif generator == 'custom_id':
-            params = field_spec.get('params', {})
-            prefix = params.get('prefix', '')
-            length = params.get('length', 8)
+        elif generator == "custom_id":
+            params = field_spec.get("params", {})
+            prefix = params.get("prefix", "")
+            length = params.get("length", 8)
             return self.field_gen.custom_id(prefix, length)
 
-        elif generator == 'full_name':
+        elif generator == "full_name":
             return self.field_gen.full_name()
 
-        elif generator == 'username':
+        elif generator == "username":
             return self.field_gen.username()
 
-        elif generator == 'user_agent':
+        elif generator == "user_agent":
             return self.field_gen.user_agent()
 
-        elif generator == 'uri_path':
+        elif generator == "uri_path":
             return self.field_gen.uri_path()
 
-        elif generator == 'city':
+        elif generator == "city":
             return self.field_gen.city()
 
-        elif generator == 'state':
+        elif generator == "state":
             return self.field_gen.state()
 
-        elif generator == 'country_code':
+        elif generator == "country_code":
             return self.field_gen.country_code()
 
-        elif generator == 'device_name':
+        elif generator == "device_name":
             return self.field_gen.device_name()
 
-        elif generator == 'email_subject':
+        elif generator == "email_subject":
             return self.field_gen.email_subject()
 
-        elif generator == 'filename':
+        elif generator == "filename":
             return self.field_gen.filename()
 
-        elif generator == 'referer':
+        elif generator == "referer":
             return self.field_gen.referer()
 
-        elif generator == 'process_name':
+        elif generator == "process_name":
             return self.field_gen.process_name()
 
-        elif generator == 'command_line':
+        elif generator == "command_line":
             return self.field_gen.command_line()
 
-        elif generator == 'sha256':
+        elif generator == "sha256":
             return self.field_gen.sha256()
 
-        elif generator == 'md5':
+        elif generator == "md5":
             return self.field_gen.md5()
 
-        elif generator == 'domain_name':
+        elif generator == "domain_name":
             return self.field_gen.domain_name()
 
-        elif generator == 'file_path':
+        elif generator == "file_path":
             return self.field_gen.file_path()
 
-        elif generator == 'detection_name':
+        elif generator == "detection_name":
             return self.field_gen.detection_name()
 
-        elif generator == 'registry_key':
+        elif generator == "registry_key":
             return self.field_gen.registry_key()
 
-        elif generator == 'aws_user_agent':
+        elif generator == "aws_user_agent":
             return self.field_gen.aws_user_agent()
 
-        elif generator == 'aws_principal_id':
+        elif generator == "aws_principal_id":
             return self.field_gen.aws_principal_id()
 
-        elif generator == 'aws_arn':
+        elif generator == "aws_arn":
             return self.field_gen.aws_arn()
 
-        elif generator == 'aws_account_id':
+        elif generator == "aws_account_id":
             return self.field_gen.aws_account_id()
 
-        elif generator == 'aws_resource_arn':
+        elif generator == "aws_resource_arn":
             return self.field_gen.aws_resource_arn()
 
-        elif generator == 'gcp_project_id':
+        elif generator == "gcp_project_id":
             return self.field_gen.gcp_project_id()
 
-        elif generator == 'gcp_resource_name':
+        elif generator == "gcp_resource_name":
             return self.field_gen.gcp_resource_name()
 
-        elif generator == 'sysmon_guid':
+        elif generator == "sysmon_guid":
             return self.field_gen.sysmon_guid()
 
-        elif generator == 'windows_image_path':
+        elif generator == "windows_image_path":
             return self.field_gen.windows_image_path()
 
-        elif generator == 'windows_user':
+        elif generator == "windows_user":
             return self.field_gen.windows_user()
 
-        elif generator == 'sysmon_hashes':
+        elif generator == "sysmon_hashes":
             return self.field_gen.sysmon_hashes()
 
         else:
-            return field_spec.get('default', 'default_value')
+            return str(field_spec.get("default", "default_value"))
 
-    def _generate_integer_field(self, field_spec: Dict[str, Any]) -> int:
+    def _generate_integer_field(self, field_spec: dict[str, Any]) -> int:
         """Generate an integer field value."""
-        default = field_spec.get('default', 0)
-        params = field_spec.get('params', {})
+        field_spec.get("default", 0)
+        params = field_spec.get("params", {})
 
-        min_val = params.get('min', 0)
-        max_val = params.get('max', 1000)
+        min_val = params.get("min", 0)
+        max_val = params.get("max", 1000)
 
-        if 'distribution' in field_spec:
+        if "distribution" in field_spec:
             # Use specific distribution from field spec
-            return self.field_gen.weighted_choice(field_spec['distribution'])
+            return cast(int, self.field_gen.weighted_choice(field_spec["distribution"]))
 
         return random.randint(min_val, max_val)
 
-    def _generate_float_field(self, field_spec: Dict[str, Any]) -> float:
+    def _generate_float_field(self, field_spec: dict[str, Any]) -> float:
         """Generate a float field value."""
-        params = field_spec.get('params', {})
-        generator = field_spec.get('generator', 'uniform')
+        params = field_spec.get("params", {})
+        generator = field_spec.get("generator", "uniform")
 
-        min_val = params.get('min', 0.0)
-        max_val = params.get('max', 1.0)
+        min_val = params.get("min", 0.0)
+        max_val = params.get("max", 1.0)
 
-        if generator == 'request_time':
-            mean = params.get('mean', 0.150)
+        if generator == "request_time":
+            mean = params.get("mean", 0.150)
             return self.field_gen.request_time(min_val, max_val, mean)
 
         return round(random.uniform(min_val, max_val), 3)
 
-    def _generate_boolean_field(self, field_spec: Dict[str, Any]) -> bool:
+    def _generate_boolean_field(self, field_spec: dict[str, Any]) -> bool:
         """Generate a boolean field value."""
-        if 'distribution' in field_spec:
-            dist = field_spec['distribution']
+        if "distribution" in field_spec:
+            dist = field_spec["distribution"]
             true_prob = dist.get(True, 0.5)
             return self.field_gen.boolean(true_prob)
 
         return random.choice([True, False])
 
-    def _generate_enum_field(self, field_spec: Dict[str, Any]) -> Any:
+    def _generate_enum_field(self, field_spec: dict[str, Any]) -> Any:
         """Generate an enum field value."""
-        values = field_spec.get('values', [])
+        values = field_spec.get("values", [])
 
         if not values:
-            return field_spec.get('default', None)
+            return field_spec.get("default", None)
 
         # Check for distribution
-        if 'distribution' in field_spec:
-            return self.field_gen.weighted_choice(field_spec['distribution'])
+        if "distribution" in field_spec:
+            return self.field_gen.weighted_choice(field_spec["distribution"])
 
         # Otherwise random choice
         return random.choice(values)
 
     def _generate_object_field(
         self,
-        field_spec: Dict[str, Any],
+        field_spec: dict[str, Any],
         base_time: datetime,
-        time_offset: int
-    ) -> Dict[str, Any]:
+        time_offset: int,
+        overrides: Optional[dict[str, Any]] = None,
+        parent_path: str = "",
+    ) -> dict[str, Any]:
         """Generate an object (nested) field value."""
+        if overrides is None:
+            overrides = {}
+
         result = {}
-        nested_fields = field_spec.get('fields', {})
+        nested_fields = field_spec.get("fields", {})
 
         for nested_name, nested_spec in nested_fields.items():
+            # Build the full path for nested fields (e.g., "id.applicationName")
+            nested_path = f"{parent_path}.{nested_name}" if parent_path else nested_name
+
             result[nested_name] = self._generate_field(
-                nested_name,
-                nested_spec,
-                base_time,
-                time_offset
+                nested_name, nested_spec, base_time, time_offset, overrides, nested_path
             )
 
         return result
 
     def _generate_array_field(
         self,
-        field_spec: Dict[str, Any],
+        field_spec: dict[str, Any],
         base_time: datetime,
-        time_offset: int
-    ) -> List[Any]:
+        time_offset: int,
+        overrides: Optional[dict[str, Any]] = None,
+        parent_path: str = "",
+    ) -> list[Any]:
         """Generate an array field value."""
-        min_items = field_spec.get('min_items', 1)
-        max_items = field_spec.get('max_items', 3)
-        item_spec = field_spec.get('item', {})
+        if overrides is None:
+            overrides = {}
+
+        # Check if the entire array is overridden
+        if parent_path in overrides:
+            return cast(list[Any], overrides[parent_path])
+
+        min_items = field_spec.get("min_items", 1)
+        max_items = field_spec.get("max_items", 3)
+        item_spec = field_spec.get("item", {})
 
         count = random.randint(min_items, max_items)
         result = []
 
         for _ in range(count):
-            if item_spec.get('type') == 'object':
+            if item_spec.get("type") == "object":
                 item_value = self._generate_object_field(
-                    item_spec,
-                    base_time,
-                    time_offset
+                    item_spec, base_time, time_offset, overrides, parent_path
                 )
             else:
                 item_value = self._generate_field(
-                    'array_item',
+                    "array_item",
                     item_spec,
                     base_time,
-                    time_offset
+                    time_offset,
+                    overrides,
+                    parent_path,
                 )
             result.append(item_value)
 
         return result
 
     def generate_to_json(
-        self,
-        count: int = 1,
-        scenario: Optional[str] = None,
-        pretty: bool = False
+        self, count: int = 1, scenario: Optional[str] = None, pretty: bool = False
     ) -> str:
         """
         Generate logs and return as JSON string.
@@ -419,16 +427,16 @@ class SchemaBasedGenerator:
         else:
             return json.dumps(logs)
 
-    def list_scenarios(self) -> List[str]:
+    def list_scenarios(self) -> list[str]:
         """List available scenarios in the schema."""
-        return list(self.schema.get('scenarios', {}).keys())
+        return list(self.schema.get("scenarios", {}).keys())
 
-    def get_schema_info(self) -> Dict[str, Any]:
+    def get_schema_info(self) -> dict[str, Any]:
         """Get schema metadata."""
         return {
-            'log_type': self.schema.get('log_type'),
-            'description': self.schema.get('description'),
-            'schema_version': self.schema.get('schema_version'),
-            'output_format': self.schema.get('output_format'),
-            'available_scenarios': self.list_scenarios()
+            "log_type": self.schema.get("log_type"),
+            "description": self.schema.get("description"),
+            "schema_version": self.schema.get("schema_version"),
+            "output_format": self.schema.get("output_format"),
+            "available_scenarios": self.list_scenarios(),
         }
