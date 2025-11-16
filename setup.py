@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Setup script for log-simulator."""
 
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import find_packages, setup
 
 # Read the README file
 readme_file = Path(__file__).parent / "README.md"
@@ -14,10 +15,10 @@ if requirements_file.exists():
     requirements = [
         line.strip()
         for line in requirements_file.read_text().splitlines()
-        if line.strip() and not line.startswith('#')
+        if line.strip() and not line.startswith("#")
     ]
 else:
-    requirements = ['PyYAML>=6.0.1']
+    requirements = ["PyYAML>=6.0.1"]
 
 setup(
     name="log-simulator",

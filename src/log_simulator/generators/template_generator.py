@@ -8,9 +8,9 @@ realistic log generation with variable substitution.
 import json
 import random
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional, cast
 
 from ..utils.field_generators import FieldGenerator
 
@@ -29,12 +29,12 @@ class TemplateBasedGenerator:
             self.template_dir = Path(template_dir)
         else:
             # Default to templates directory in package
-            self.template_dir = Path(__file__).parent.parent / 'templates'
+            self.template_dir = Path(__file__).parent.parent / "templates"
 
         self.field_gen = FieldGenerator()
-        self.variable_pattern = re.compile(r'\{\{(\w+)\}\}')
+        self.variable_pattern = re.compile(r"\{\{(\w+)\}\}")
 
-    def list_templates(self, category: Optional[str] = None) -> List[str]:
+    def list_templates(self, category: Optional[str] = None) -> list[str]:
         """
         List available templates.
 
@@ -53,13 +53,13 @@ class TemplateBasedGenerator:
             return []
 
         templates = []
-        for template_file in search_dir.rglob('*.json'):
+        for template_file in search_dir.rglob("*.json"):
             rel_path = template_file.relative_to(self.template_dir)
             templates.append(str(rel_path))
 
         return sorted(templates)
 
-    def load_template(self, template_path: str) -> Dict[str, Any]:
+    def load_template(self, template_path: str) -> dict[str, Any]:
         """
         Load a template file.
 
@@ -74,14 +74,11 @@ class TemplateBasedGenerator:
         if not full_path.exists():
             raise FileNotFoundError(f"Template not found: {template_path}")
 
-        with open(full_path, 'r') as f:
-            return json.load(f)
+        with open(full_path) as f:
+            return cast(dict[str, Any], json.load(f))
 
     def _substitute_variables(
-        self,
-        value: Any,
-        base_time: Optional[datetime] = None,
-        offset_seconds: int = 0
+        self, value: Any, base_time: Optional[datetime] = None, offset_seconds: int = 0
     ) -> Any:
         """
         Substitute template variables with generated values.
@@ -121,10 +118,7 @@ class TemplateBasedGenerator:
             return value
 
     def _generate_variable(
-        self,
-        var_name: str,
-        base_time: datetime,
-        offset_seconds: int
+        self, var_name: str, base_time: datetime, offset_seconds: int
     ) -> str:
         """
         Generate value for a template variable.
@@ -138,62 +132,62 @@ class TemplateBasedGenerator:
             Generated value as string
         """
         # Timestamp variables
-        if var_name in ['timestamp', 'utc_time', 'event_time']:
+        if var_name in ["timestamp", "utc_time", "event_time"]:
             return self.field_gen.datetime_iso8601(base_time, offset_seconds)
 
         # ID variables
-        elif var_name in ['uuid', 'event_id', 'record_id', 'id']:
+        elif var_name in ["uuid", "event_id", "record_id", "id"]:
             return self.field_gen.uuid4()
 
-        elif var_name in ['process_id', 'pid']:
+        elif var_name in ["process_id", "pid"]:
             return str(random.randint(100, 65535))
 
-        elif var_name in ['thread_id', 'tid']:
+        elif var_name in ["thread_id", "tid"]:
             return str(random.randint(1, 10000))
 
         # Network variables
-        elif var_name in ['ip', 'source_ip', 'remote_ip']:
+        elif var_name in ["ip", "source_ip", "remote_ip"]:
             return self.field_gen.ipv4()
 
-        elif var_name in ['port', 'source_port', 'remote_port']:
+        elif var_name in ["port", "source_port", "remote_port"]:
             return str(random.randint(1024, 65535))
 
         # User variables
-        elif var_name in ['username', 'user']:
+        elif var_name in ["username", "user"]:
             return self.field_gen.username()
 
-        elif var_name in ['email', 'user_email']:
+        elif var_name in ["email", "user_email"]:
             return self.field_gen.email()
 
         # File/Process variables
-        elif var_name in ['filename', 'file_name']:
+        elif var_name in ["filename", "file_name"]:
             return self.field_gen.filename()
 
-        elif var_name in ['file_path', 'path']:
+        elif var_name in ["file_path", "path"]:
             return self.field_gen.file_path()
 
-        elif var_name in ['process_name', 'image_name']:
+        elif var_name in ["process_name", "image_name"]:
             return self.field_gen.process_name()
 
-        elif var_name in ['command_line', 'cmdline']:
+        elif var_name in ["command_line", "cmdline"]:
             return self.field_gen.command_line()
 
         # Hash variables
-        elif var_name in ['sha256', 'hash_sha256']:
+        elif var_name in ["sha256", "hash_sha256"]:
             return self.field_gen.sha256()
 
-        elif var_name in ['md5', 'hash_md5']:
+        elif var_name in ["md5", "hash_md5"]:
             return self.field_gen.md5()
 
         # Host variables
-        elif var_name in ['hostname', 'computer_name']:
+        elif var_name in ["hostname", "computer_name"]:
             return self.field_gen.device_name()
 
-        elif var_name in ['domain', 'domain_name']:
+        elif var_name in ["domain", "domain_name"]:
             return self.field_gen.domain_name()
 
         # Numbers
-        elif var_name.endswith('_number'):
+        elif var_name.endswith("_number"):
             return str(random.randint(1, 1000000))
 
         # Default: return placeholder
@@ -205,8 +199,8 @@ class TemplateBasedGenerator:
         template_path: str,
         count: int = 1,
         base_time: Optional[datetime] = None,
-        time_spread_seconds: int = 0
-    ) -> List[Dict[str, Any]]:
+        time_spread_seconds: int = 0,
+    ) -> list[dict[str, Any]]:
         """
         Generate logs from a template.
 
@@ -240,11 +234,11 @@ class TemplateBasedGenerator:
 
     def generate_attack_scenario(
         self,
-        techniques: List[str],
+        techniques: list[str],
         count_per_technique: int = 5,
-        template_category: str = 'security',
-        time_spread_seconds: int = 300
-    ) -> List[Dict[str, Any]]:
+        template_category: str = "security",
+        time_spread_seconds: int = 300,
+    ) -> list[dict[str, Any]]:
         """
         Generate logs for an attack scenario using multiple techniques.
 
@@ -278,35 +272,30 @@ class TemplateBasedGenerator:
             template_path = matching_templates[0].relative_to(self.template_dir)
 
             # Generate logs for this technique
-            for i in range(count_per_technique):
+            for _i in range(count_per_technique):
                 offset = int((log_index / total_logs) * time_spread_seconds)
                 log = self._substitute_variables(
-                    self.load_template(str(template_path)),
-                    base_time,
-                    offset
+                    self.load_template(str(template_path)), base_time, offset
                 )
 
                 # Add metadata
-                log['_metadata'] = {
-                    'technique': technique,
-                    'log_index': log_index,
-                    'template': str(template_path)
+                log["_metadata"] = {
+                    "technique": technique,
+                    "log_index": log_index,
+                    "template": str(template_path),
                 }
 
                 all_logs.append(log)
                 log_index += 1
 
         # Sort by timestamp if present
-        if all_logs and 'timestamp' in all_logs[0]:
-            all_logs.sort(key=lambda x: x.get('timestamp', ''))
+        if all_logs and "timestamp" in all_logs[0]:
+            all_logs.sort(key=lambda x: x.get("timestamp", ""))
 
         return all_logs
 
     def generate_to_json(
-        self,
-        template_path: str,
-        count: int = 1,
-        pretty: bool = False
+        self, template_path: str, count: int = 1, pretty: bool = False
     ) -> str:
         """
         Generate logs and return as JSON string.
@@ -327,11 +316,7 @@ class TemplateBasedGenerator:
             return json.dumps(logs)
 
     def save_to_file(
-        self,
-        template_path: str,
-        output_file: str,
-        count: int = 1,
-        pretty: bool = False
+        self, template_path: str, output_file: str, count: int = 1, pretty: bool = False
     ):
         """
         Generate logs and save to file.

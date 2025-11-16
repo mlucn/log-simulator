@@ -39,6 +39,7 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
 ]
 
 [project.urls]
@@ -60,6 +61,8 @@ include = '\.pyi?$'
 [tool.ruff]
 line-length = 88
 target-version = "py39"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -73,6 +76,8 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by black)
+    "S101",  # use of assert (acceptable in tests)
+    "S311",  # pseudo-random generators (acceptable for log simulation)
 ]
 
 [tool.mypy]

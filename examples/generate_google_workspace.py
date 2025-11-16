@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from log_simulator import SchemaBasedGenerator
 
@@ -20,7 +20,14 @@ def main():
     """Generate Google Workspace logs with different scenarios."""
 
     # Path to the Google Workspace schema
-    schema_path = Path(__file__).parent.parent / 'src' / 'log_simulator' / 'schemas' / 'cloud_identity' / 'google_workspace.yaml'
+    schema_path = (
+        Path(__file__).parent.parent
+        / "src"
+        / "log_simulator"
+        / "schemas"
+        / "cloud_identity"
+        / "google_workspace.yaml"
+    )
 
     # Initialize the generator
     generator = SchemaBasedGenerator(str(schema_path))
@@ -33,8 +40,8 @@ def main():
     print(f"Log Type: {info['log_type']}")
     print(f"Description: {info['description']}")
     print(f"Schema Version: {info['schema_version']}")
-    print(f"\nAvailable Scenarios:")
-    for scenario in info['available_scenarios']:
+    print("\nAvailable Scenarios:")
+    for scenario in info["available_scenarios"]:
         print(f"  - {scenario}")
     print("=" * 70)
     print()
@@ -49,28 +56,28 @@ def main():
     # Example 2: Generate drive file access logs
     print("\nExample 2: Drive file access (scenario)")
     print("-" * 70)
-    logs = generator.generate(count=1, scenario='drive_file_access')
+    logs = generator.generate(count=1, scenario="drive_file_access")
     print(json.dumps(logs[0], indent=2))
     print()
 
     # Example 3: Generate successful login
     print("\nExample 3: User login success (scenario)")
     print("-" * 70)
-    logs = generator.generate(count=1, scenario='user_login_success')
+    logs = generator.generate(count=1, scenario="user_login_success")
     print(json.dumps(logs[0], indent=2))
     print()
 
     # Example 4: Generate failed login
     print("\nExample 4: User login failure (scenario)")
     print("-" * 70)
-    logs = generator.generate(count=1, scenario='user_login_failure')
+    logs = generator.generate(count=1, scenario="user_login_failure")
     print(json.dumps(logs[0], indent=2))
     print()
 
     # Example 5: Generate admin user creation
     print("\nExample 5: Admin user creation (scenario)")
     print("-" * 70)
-    logs = generator.generate(count=1, scenario='admin_user_create')
+    logs = generator.generate(count=1, scenario="admin_user_create")
     print(json.dumps(logs[0], indent=2))
     print()
 
@@ -78,9 +85,7 @@ def main():
     print("\nExample 6: Multiple logs over 60 seconds")
     print("-" * 70)
     logs = generator.generate(
-        count=5,
-        scenario='user_login_success',
-        time_spread_seconds=60
+        count=5, scenario="user_login_success", time_spread_seconds=60
     )
     for i, log in enumerate(logs, 1):
         print(f"Log {i} - Timestamp: {log['id']['time']}")
@@ -89,10 +94,10 @@ def main():
     # Example 7: Save logs to file
     print("\nExample 7: Save 10 logs to file")
     print("-" * 70)
-    output_file = Path(__file__).parent / 'google_workspace_logs.json'
+    output_file = Path(__file__).parent / "google_workspace_logs.json"
     logs = generator.generate(count=10, time_spread_seconds=300)
 
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(logs, f, indent=2)
 
     print(f"Generated {len(logs)} logs and saved to: {output_file}")
@@ -104,5 +109,5 @@ def main():
     print("=" * 70)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

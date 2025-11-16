@@ -56,11 +56,14 @@ pip install -r requirements.txt
 ### Development Installation
 
 ```bash
-# Install in editable mode
-pip install -e .
+# Install in editable mode with dev dependencies
+pip install -e ".[dev]"
 
-# Install development dependencies
-pip install pytest black ruff mypy
+# Install type stubs for YAML
+pip install types-PyYAML
+
+# Set up pre-commit hooks (recommended)
+pre-commit install
 ```
 
 ## Quick Start
@@ -371,22 +374,66 @@ Please see [CLAUDE.md](CLAUDE.md) for development guidelines.
 
 ## Development
 
+### Running Tests
+
 ```bash
-# Run tests
+# Run all tests
 pytest
 
 # Run tests with coverage
 pytest --cov=src/log_simulator --cov-report=html
 
-# Format code
+# Run specific test file
+pytest tests/unit/test_schema_generator.py -v
+```
+
+### Code Quality
+
+```bash
+# Format code with black
 black src/ tests/
 
-# Lint code
-ruff check src/ tests/
+# Lint with ruff (auto-fix issues)
+ruff check src/ tests/ --fix
 
-# Type check
+# Type check with mypy
 mypy src/
+
+# Run all quality checks
+black src/ tests/ && ruff check src/ tests/ && mypy src/ && pytest
 ```
+
+### Pre-commit Hooks
+
+Pre-commit hooks automatically run quality checks before each commit:
+
+```bash
+# Install hooks (one-time setup)
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
+
+# Skip hooks if needed (not recommended)
+git commit --no-verify
+```
+
+The hooks will automatically:
+- Format code with Black
+- Lint with Ruff (and auto-fix)
+- Type-check with Mypy
+- Check for trailing whitespace, large files, etc.
+
+### Continuous Integration
+
+The project uses GitHub Actions to run tests on every push and pull request:
+
+- ✅ Tests run on Python 3.9, 3.10, 3.11, and 3.12
+- ✅ Code coverage reported to Codecov
+- ✅ Linting and type checking enforced
+- ✅ All checks must pass before merging
+
+View test results and coverage at: https://github.com/mlucn/log-simulator/actions
 
 ## License
 

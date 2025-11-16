@@ -22,8 +22,7 @@ class FieldGenerator:
 
     @staticmethod
     def datetime_iso8601(
-        base_time: Optional[datetime] = None,
-        offset_seconds: int = 0
+        base_time: Optional[datetime] = None, offset_seconds: int = 0
     ) -> str:
         """
         Generate an ISO 8601 formatted timestamp.
@@ -77,20 +76,38 @@ class FieldGenerator:
             Email address string
         """
         if domain is None:
-            domain = random.choice([
-                "example.com",
-                "company.com",
-                "organization.org",
-                "business.net"
-            ])
+            domain = random.choice(
+                ["example.com", "company.com", "organization.org", "business.net"]
+            )
 
         first_names = [
-            "john", "jane", "alice", "bob", "charlie", "david", "emma",
-            "frank", "grace", "henry", "isabel", "jack", "kate", "liam"
+            "john",
+            "jane",
+            "alice",
+            "bob",
+            "charlie",
+            "david",
+            "emma",
+            "frank",
+            "grace",
+            "henry",
+            "isabel",
+            "jack",
+            "kate",
+            "liam",
         ]
         last_names = [
-            "smith", "johnson", "williams", "brown", "jones", "garcia",
-            "miller", "davis", "rodriguez", "martinez", "hernandez"
+            "smith",
+            "johnson",
+            "williams",
+            "brown",
+            "jones",
+            "garcia",
+            "miller",
+            "davis",
+            "rodriguez",
+            "martinez",
+            "hernandez",
         ]
 
         first = random.choice(first_names)
@@ -100,7 +117,7 @@ class FieldGenerator:
             f"{first}.{last}",
             f"{first}{last}",
             f"{first[0]}{last}",
-            f"{first}.{last}{random.randint(1, 99)}"
+            f"{first}.{last}{random.randint(1, 99)}",
         ]
 
         return f"{random.choice(formats)}@{domain}"
@@ -109,14 +126,44 @@ class FieldGenerator:
     def full_name() -> str:
         """Generate a random full name."""
         first_names = [
-            "John", "Jane", "Alice", "Bob", "Charlie", "David", "Emma",
-            "Frank", "Grace", "Henry", "Isabel", "Jack", "Kate", "Liam",
-            "Maria", "Noah", "Olivia", "Peter", "Quinn", "Rachel"
+            "John",
+            "Jane",
+            "Alice",
+            "Bob",
+            "Charlie",
+            "David",
+            "Emma",
+            "Frank",
+            "Grace",
+            "Henry",
+            "Isabel",
+            "Jack",
+            "Kate",
+            "Liam",
+            "Maria",
+            "Noah",
+            "Olivia",
+            "Peter",
+            "Quinn",
+            "Rachel",
         ]
         last_names = [
-            "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia",
-            "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez",
-            "Wilson", "Anderson", "Taylor", "Thomas", "Moore"
+            "Smith",
+            "Johnson",
+            "Williams",
+            "Brown",
+            "Jones",
+            "Garcia",
+            "Miller",
+            "Davis",
+            "Rodriguez",
+            "Martinez",
+            "Hernandez",
+            "Wilson",
+            "Anderson",
+            "Taylor",
+            "Thomas",
+            "Moore",
         ]
 
         return f"{random.choice(first_names)} {random.choice(last_names)}"
@@ -126,7 +173,9 @@ class FieldGenerator:
         """Generate a random username."""
         adjectives = ["cool", "fast", "smart", "bright", "bold", "quick"]
         nouns = ["tiger", "eagle", "fox", "wolf", "bear", "lion"]
-        return f"{random.choice(adjectives)}{random.choice(nouns)}{random.randint(1, 999)}"
+        return (
+            f"{random.choice(adjectives)}{random.choice(nouns)}{random.randint(1, 999)}"
+        )
 
     @staticmethod
     def number_string(length: int = 16) -> str:
@@ -139,7 +188,7 @@ class FieldGenerator:
         Returns:
             String of random digits
         """
-        return ''.join(random.choices(string.digits, k=length))
+        return "".join(random.choices(string.digits, k=length))
 
     @staticmethod
     def custom_id(prefix: str = "", length: int = 8) -> str:
@@ -153,7 +202,7 @@ class FieldGenerator:
         Returns:
             Custom ID string
         """
-        random_part = ''.join(
+        random_part = "".join(
             random.choices(string.ascii_uppercase + string.digits, k=length)
         )
         return f"{prefix}{random_part}"
@@ -168,7 +217,7 @@ class FieldGenerator:
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
-            "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
         ]
         return random.choice(browsers)
 
@@ -190,7 +239,7 @@ class FieldGenerator:
             "/settings",
             "/login",
             "/logout",
-            "/docs/readme.html"
+            "/docs/readme.html",
         ]
         return random.choice(paths)
 
@@ -198,18 +247,43 @@ class FieldGenerator:
     def http_status() -> int:
         """Generate an HTTP status code with realistic distribution."""
         # Weighted distribution
-        statuses = [200] * 75 + [301] * 5 + [302] * 3 + [304] * 4 + \
-                   [400] * 2 + [401] * 2 + [403] * 2 + [404] * 5 + [500] * 2
+        statuses = (
+            [200] * 75
+            + [301] * 5
+            + [302] * 3
+            + [304] * 4
+            + [400] * 2
+            + [401] * 2
+            + [403] * 2
+            + [404] * 5
+            + [500] * 2
+        )
         return random.choice(statuses)
 
     @staticmethod
     def city() -> str:
         """Generate a random city name."""
         cities = [
-            "New York", "Los Angeles", "Chicago", "Houston", "Phoenix",
-            "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose",
-            "London", "Paris", "Tokyo", "Sydney", "Toronto", "Berlin",
-            "Singapore", "Mumbai", "Dubai", "Amsterdam"
+            "New York",
+            "Los Angeles",
+            "Chicago",
+            "Houston",
+            "Phoenix",
+            "Philadelphia",
+            "San Antonio",
+            "San Diego",
+            "Dallas",
+            "San Jose",
+            "London",
+            "Paris",
+            "Tokyo",
+            "Sydney",
+            "Toronto",
+            "Berlin",
+            "Singapore",
+            "Mumbai",
+            "Dubai",
+            "Amsterdam",
         ]
         return random.choice(cities)
 
@@ -217,8 +291,16 @@ class FieldGenerator:
     def state() -> str:
         """Generate a random US state."""
         states = [
-            "California", "Texas", "Florida", "New York", "Pennsylvania",
-            "Illinois", "Ohio", "Georgia", "North Carolina", "Michigan"
+            "California",
+            "Texas",
+            "Florida",
+            "New York",
+            "Pennsylvania",
+            "Illinois",
+            "Ohio",
+            "Georgia",
+            "North Carolina",
+            "Michigan",
         ]
         return random.choice(states)
 
@@ -226,8 +308,26 @@ class FieldGenerator:
     def country_code() -> str:
         """Generate a random ISO country code."""
         countries = [
-            "US", "GB", "CA", "AU", "DE", "FR", "JP", "IN", "BR", "MX",
-            "IT", "ES", "NL", "SE", "SG", "AE", "CN", "KR", "RU", "ZA"
+            "US",
+            "GB",
+            "CA",
+            "AU",
+            "DE",
+            "FR",
+            "JP",
+            "IN",
+            "BR",
+            "MX",
+            "IT",
+            "ES",
+            "NL",
+            "SE",
+            "SG",
+            "AE",
+            "CN",
+            "KR",
+            "RU",
+            "ZA",
         ]
         return random.choice(countries)
 
@@ -292,7 +392,9 @@ class FieldGenerator:
         return max(min_bytes, min(value, max_bytes))
 
     @staticmethod
-    def request_time(min_time: float = 0.001, max_time: float = 30.0, mean: float = 0.150) -> float:
+    def request_time(
+        min_time: float = 0.001, max_time: float = 30.0, mean: float = 0.150
+    ) -> float:
         """
         Generate request processing time with log-normal distribution.
 
@@ -306,6 +408,7 @@ class FieldGenerator:
         """
         # Log-normal distribution
         import math
+
         mu = math.log(mean)
         sigma = 1.0
         value = random.lognormvariate(mu, sigma)
@@ -334,7 +437,7 @@ class FieldGenerator:
             "Policy Update",
             "Training Session",
             "Feedback Request",
-            "System Maintenance"
+            "System Maintenance",
         ]
         return random.choice(subjects)
 
@@ -342,13 +445,31 @@ class FieldGenerator:
     def filename() -> str:
         """Generate a random filename."""
         names = [
-            "report", "document", "presentation", "spreadsheet",
-            "budget", "proposal", "summary", "analysis", "data",
-            "meeting_notes", "project_plan", "requirements", "spec"
+            "report",
+            "document",
+            "presentation",
+            "spreadsheet",
+            "budget",
+            "proposal",
+            "summary",
+            "analysis",
+            "data",
+            "meeting_notes",
+            "project_plan",
+            "requirements",
+            "spec",
         ]
         extensions = [
-            ".docx", ".xlsx", ".pptx", ".pdf", ".txt",
-            ".csv", ".json", ".xml", ".zip", ".png"
+            ".docx",
+            ".xlsx",
+            ".pptx",
+            ".pdf",
+            ".txt",
+            ".csv",
+            ".json",
+            ".xml",
+            ".zip",
+            ".png",
         ]
         name = random.choice(names)
         ext = random.choice(extensions)
@@ -375,11 +496,25 @@ class FieldGenerator:
     def process_name() -> str:
         """Generate a random process name."""
         processes = [
-            "chrome.exe", "firefox.exe", "msedge.exe", "explorer.exe",
-            "svchost.exe", "System", "cmd.exe", "powershell.exe",
-            "notepad.exe", "Teams.exe", "Outlook.exe", "Excel.exe",
-            "Word.exe", "java.exe", "python.exe", "node.exe",
-            "code.exe", "slack.exe", "zoom.exe"
+            "chrome.exe",
+            "firefox.exe",
+            "msedge.exe",
+            "explorer.exe",
+            "svchost.exe",
+            "System",
+            "cmd.exe",
+            "powershell.exe",
+            "notepad.exe",
+            "Teams.exe",
+            "Outlook.exe",
+            "Excel.exe",
+            "Word.exe",
+            "java.exe",
+            "python.exe",
+            "node.exe",
+            "code.exe",
+            "slack.exe",
+            "zoom.exe",
         ]
         return random.choice(processes)
 
@@ -388,35 +523,44 @@ class FieldGenerator:
         """Generate a random command line."""
         commands = [
             '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --type=renderer',
-            'C:\\Windows\\System32\\svchost.exe -k NetworkService',
-            'powershell.exe -NoProfile -Command Get-Process',
+            "C:\\Windows\\System32\\svchost.exe -k NetworkService",
+            "powershell.exe -NoProfile -Command Get-Process",
             'cmd.exe /c "dir C:\\Users"',
             '"C:\\Program Files\\Microsoft Office\\Office16\\OUTLOOK.EXE"',
-            'python.exe script.py --verbose',
-            'node.exe server.js',
+            "python.exe script.py --verbose",
+            "node.exe server.js",
             '"C:\\Windows\\Explorer.EXE"',
-            'notepad.exe C:\\Users\\user\\Documents\\file.txt'
+            "notepad.exe C:\\Users\\user\\Documents\\file.txt",
         ]
         return random.choice(commands)
 
     @staticmethod
     def sha256() -> str:
         """Generate a random SHA256 hash."""
-        return ''.join(random.choices('0123456789abcdef', k=64))
+        return "".join(random.choices("0123456789abcdef", k=64))
 
     @staticmethod
     def md5() -> str:
         """Generate a random MD5 hash."""
-        return ''.join(random.choices('0123456789abcdef', k=32))
+        return "".join(random.choices("0123456789abcdef", k=32))
 
     @staticmethod
     def domain_name() -> str:
         """Generate a random domain name."""
         domains = [
-            "example.com", "test.com", "sample.org", "demo.net",
-            "google.com", "microsoft.com", "amazon.com", "github.com",
-            "api.service.com", "cdn.example.net", "mail.company.com",
-            "update.vendor.com", "download.software.org"
+            "example.com",
+            "test.com",
+            "sample.org",
+            "demo.net",
+            "google.com",
+            "microsoft.com",
+            "amazon.com",
+            "github.com",
+            "api.service.com",
+            "cdn.example.net",
+            "mail.company.com",
+            "update.vendor.com",
+            "download.software.org",
         ]
         return random.choice(domains)
 
@@ -432,7 +576,7 @@ class FieldGenerator:
             "C:\\Temp\\output.log",
             "C:\\ProgramData\\vendor\\data.json",
             "C:\\Users\\user\\AppData\\Local\\Temp\\tmp.dat",
-            "D:\\Projects\\source\\main.py"
+            "D:\\Projects\\source\\main.py",
         ]
         return random.choice(paths)
 
@@ -451,7 +595,7 @@ class FieldGenerator:
             "File Encryption Activity",
             "Registry Persistence",
             "Suspicious Script Execution",
-            "Command and Control Traffic"
+            "Command and Control Traffic",
         ]
         return random.choice(detections)
 
@@ -465,7 +609,7 @@ class FieldGenerator:
             "HKLM\\SYSTEM\\CurrentControlSet\\Services",
             "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows",
             "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
-            "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+            "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
         ]
         return random.choice(keys)
 
@@ -479,7 +623,7 @@ class FieldGenerator:
             "aws-sdk-java/2.20.140 Linux/5.15.0",
             "[S3Console/0.4]",
             "console.amazonaws.com",
-            "AWS Internal"
+            "AWS Internal",
         ]
         return random.choice(agents)
 
@@ -487,7 +631,7 @@ class FieldGenerator:
     def aws_principal_id() -> str:
         """Generate a random AWS principal ID."""
         prefix = random.choice(["AIDAI", "AROA", "AGPA"])
-        suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=17))
+        suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=17))
         return f"{prefix}{suffix}"
 
     @staticmethod
@@ -499,13 +643,15 @@ class FieldGenerator:
             ("iam", "role", "rolename"),
             ("s3", "", "bucket-name"),
             ("ec2", "instance", "i-"),
-            ("lambda", "function", "function-name")
+            ("lambda", "function", "function-name"),
         ]
         service, res_type, prefix = random.choice(resource_types)
 
         if res_type:
             if prefix.startswith("i-"):
-                resource = f"{prefix}{''.join(random.choices(string.hexdigits.lower(), k=17))}"
+                resource = (
+                    f"{prefix}{''.join(random.choices(string.hexdigits.lower(), k=17))}"
+                )
                 return f"arn:aws:{service}:us-east-1:{account_id}:{res_type}/{resource}"
             else:
                 resource = f"{prefix}{random.randint(1, 9999)}"
@@ -516,7 +662,7 @@ class FieldGenerator:
     @staticmethod
     def aws_account_id() -> str:
         """Generate a random AWS account ID (12 digits)."""
-        return ''.join(random.choices(string.digits, k=12))
+        return "".join(random.choices(string.digits, k=12))
 
     @staticmethod
     def aws_resource_arn() -> str:
@@ -538,11 +684,11 @@ class FieldGenerator:
         resource_types = [
             ("instances", "instance-"),
             ("buckets", "bucket-"),
-            ("serviceAccounts", "sa-")
+            ("serviceAccounts", "sa-"),
         ]
         res_type, prefix = random.choice(resource_types)
         resource_id = f"{prefix}{random.randint(1000, 9999)}"
-        
+
         if res_type == "instances":
             zone = random.choice(["us-central1-a", "us-east1-b", "europe-west1-c"])
             return f"projects/{project_id}/zones/{zone}/{res_type}/{resource_id}"
@@ -553,7 +699,7 @@ class FieldGenerator:
     def sysmon_guid() -> str:
         """Generate a Sysmon-style GUID."""
         # Format: {XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}
-        return '{' + FieldGenerator.uuid4().upper() + '}'
+        return "{" + FieldGenerator.uuid4().upper() + "}"
 
     @staticmethod
     def windows_image_path() -> str:
@@ -573,7 +719,7 @@ class FieldGenerator:
             "C:\\Program Files\\Microsoft Office\\Office16\\OUTLOOK.EXE",
             "C:\\Windows\\System32\\msiexec.exe",
             "C:\\Windows\\System32\\reg.exe",
-            "C:\\Windows\\System32\\net.exe"
+            "C:\\Windows\\System32\\net.exe",
         ]
         return random.choice(paths)
 
