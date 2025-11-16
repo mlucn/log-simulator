@@ -1,0 +1,301 @@
+# Nginx Access Log Schema
+# Supports both JSON format and traditional combined log format
+
+schema_version: "1.0"
+log_type: "nginx_access"
+description: "Nginx web server access logs"
+
+# Output format configuration
+output_format: "json"  # Can be "json" or "combined"
+ecs_compatible: true
+
+# Field definitions (JSON format)
+fields:
+  timestamp:
+    type: "datetime"
+    format: "iso8601"
+    required: true
+    description: "Request timestamp"
+    ecs_field: "@timestamp"
+
+  remote_addr:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "Client IP address"
+    ecs_field: "source.ip"
+
+  remote_user:
+    type: "string"
+    generator: "username"
+    required: false
+    description: "Authenticated username"
+    default: "-"
+    ecs_field: "user.name"
+    distribution:
+      "-": 0.95  # Most requests are not authenticated
+      "user": 0.05
+
+  request_method:
+    type: "enum"
+    values:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "HEAD"
+      - "OPTIONS"
+      - "PATCH"
+    required: true
+    description: "HTTP request method"
+    ecs_field: "http.request.method"
+    distribution:
+      GET: 0.70
+      POST: 0.20
+      PUT: 0.03
+      DELETE: 0.02
+      HEAD: 0.03
+      OPTIONS: 0.01
+      PATCH: 0.01
+
+  request_uri:
+    type: "string"
+    generator: "uri_path"
+    required: true
+    description: "Request URI"
+    ecs_field: "url.path"
+
+  http_version:
+    type: "enum"
+    values:
+      - "HTTP/1.0"
+      - "HTTP/1.1"
+      - "HTTP/2.0"
+    required: true
+    description: "HTTP protocol version"
+    distribution:
+      "HTTP/1.1": 0.70
+      "HTTP/2.0": 0.28
+      "HTTP/1.0": 0.02
+
+  status:
+    type: "integer"
+    generator: "http_status"
+    required: true
+    description: "HTTP response status code"
+    ecs_field: "http.response.status_code"
+    distribution:
+      200: 0.75
+      301: 0.05
+      302: 0.03
+      304: 0.04
+      400: 0.02
+      401: 0.02
+      403: 0.02
+      404: 0.05
+      500: 0.01
+      502: 0.005
+      503: 0.005
+
+  body_bytes_sent:
+    type: "integer"
+    generator: "body_bytes"
+    required: true
+    description: "Number of bytes sent to client"
+    ecs_field: "http.response.body.bytes"
+    params:
+      min: 0
+      max: 5000000
+      distribution: "log_normal"
+
+  http_referer:
+    type: "string"
+    generator: "referer"
+    required: false
+    description: "HTTP referer header"
+    ecs_field: "http.request.referrer"
+    default: "-"
+
+  http_user_agent:
+    type: "string"
+    generator: "user_agent"
+    required: true
+    description: "User agent string"
+    ecs_field: "user_agent.original"
+
+  request_time:
+    type: "float"
+    generator: "request_time"
+    required: false
+    description: "Request processing time in seconds"
+    params:
+      min: 0.001
+      max: 30.0
+      distribution: "log_normal"
+      mean: 0.150
+
+  upstream_response_time:
+    type: "float"
+    generator: "upstream_time"
+    required: false
+    description: "Upstream server response time"
+    params:
+      min: 0.001
+      max: 25.0
+      distribution: "log_normal"
+      mean: 0.100
+
+  gzip_ratio:
+    type: "float"
+    generator: "gzip_ratio"
+    required: false
+    description: "Compression ratio"
+    params:
+      min: 1.0
+      max: 10.0
+
+  connection:
+    type: "integer"
+    generator: "connection_id"
+    required: false
+    description: "Connection serial number"
+
+  connection_requests:
+    type: "integer"
+    generator: "connection_requests"
+    required: false
+    description: "Number of requests in connection"
+    params:
+      min: 1
+      max: 100
+      distribution: "geometric"
+
+  ssl_protocol:
+    type: "enum"
+    values:
+      - "TLSv1.2"
+      - "TLSv1.3"
+      - "-"
+    required: false
+    description: "SSL protocol version"
+    ecs_field: "tls.version_protocol"
+    distribution:
+      "TLSv1.3": 0.60
+      "TLSv1.2": 0.35
+      "-": 0.05
+
+  ssl_cipher:
+    type: "enum"
+    values:
+      - "TLS_AES_256_GCM_SHA384"
+      - "TLS_CHACHA20_POLY1305_SHA256"
+      - "TLS_AES_128_GCM_SHA256"
+      - "ECDHE-RSA-AES256-GCM-SHA384"
+      - "ECDHE-RSA-AES128-GCM-SHA256"
+      - "-"
+    required: false
+    description: "SSL cipher used"
+    ecs_field: "tls.cipher"
+
+# Combined log format template
+# $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
+combined_format: '{remote_addr} - {remote_user} [{time_local}] "{request_method} {request_uri} {http_version}" {status} {body_bytes_sent} "{http_referer}" "{http_user_agent}"'
+
+# Pre-defined scenarios
+scenarios:
+  successful_page_load:
+    request_method: "GET"
+    request_uri: "/index.html"
+    status: 200
+    body_bytes_sent: 4523
+    http_referer: "-"
+
+  api_post_request:
+    request_method: "POST"
+    request_uri: "/api/v1/users"
+    status: 201
+    body_bytes_sent: 156
+    http_user_agent: "PostmanRuntime/7.29.2"
+
+  page_not_found:
+    request_method: "GET"
+    status: 404
+    body_bytes_sent: 162
+    request_uri: "/missing-page.html"
+
+  static_resource:
+    request_method: "GET"
+    request_uri: "/static/js/app.bundle.js"
+    status: 200
+    body_bytes_sent: 156789
+    http_referer: "https://example.com/dashboard"
+
+  unauthorized_access:
+    request_method: "GET"
+    request_uri: "/admin/dashboard"
+    status: 401
+    body_bytes_sent: 195
+    remote_user: "-"
+
+  server_error:
+    request_method: "POST"
+    request_uri: "/api/v1/process"
+    status: 500
+    body_bytes_sent: 567
+    request_time: 5.234
+
+  bot_crawler:
+    request_method: "GET"
+    http_user_agent: "Googlebot/2.1 (+http://www.google.com/bot.html)"
+    status: 200
+
+  malicious_scan:
+    request_method: "GET"
+    request_uri: "/admin/config.php"
+    status: 404
+    http_user_agent: "sqlmap/1.0"
+    body_bytes_sent: 162
+
+  ddos_pattern:
+    request_method: "GET"
+    request_uri: "/"
+    status: 503
+    body_bytes_sent: 197
+    request_time: 0.001
+    connection_requests: 1
+
+# Attack patterns for security testing
+attack_patterns:
+  sql_injection:
+    request_uri_patterns:
+      - "/search?q=' OR '1'='1"
+      - "/user?id=1 UNION SELECT NULL--"
+      - "/page?id=1'; DROP TABLE users--"
+    status: 400
+
+  path_traversal:
+    request_uri_patterns:
+      - "/download?file=../../../etc/passwd"
+      - "/view?path=....//....//etc/shadow"
+    status: 403
+
+  xss_attempt:
+    request_uri_patterns:
+      - "/search?q=<script>alert('xss')</script>"
+      - "/comment?text=<img src=x onerror=alert(1)>"
+    status: 400
+
+# Correlation rules
+correlation:
+  - field: "remote_addr"
+    scope: "session"
+    description: "Same IP for related requests"
+
+  - field: "connection"
+    scope: "connection"
+    description: "Same connection ID for keep-alive requests"
+
+  - field: "http_user_agent"
+    scope: "session"
+    correlation_with: "remote_addr"
+    description: "User agent typically stays same for a session"

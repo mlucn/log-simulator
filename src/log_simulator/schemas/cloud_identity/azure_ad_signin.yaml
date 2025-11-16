@@ -1,0 +1,354 @@
+# Azure AD (Microsoft Entra ID) Sign-in Log Schema
+# Based on Microsoft Graph signIn resource type
+# Reference: https://learn.microsoft.com/en-us/graph/api/resources/signin
+
+schema_version: "1.0"
+log_type: "azure_ad_signin"
+description: "Azure AD sign-in logs from Microsoft Graph API"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+
+# Field definitions
+fields:
+  id:
+    type: "uuid"
+    generator: "uuid4"
+    required: true
+    description: "Unique identifier for the sign-in event"
+
+  createdDateTime:
+    type: "datetime"
+    format: "iso8601"
+    required: true
+    description: "Date and time the sign-in was initiated"
+
+  userDisplayName:
+    type: "string"
+    generator: "full_name"
+    required: true
+    description: "Display name of the user"
+
+  userPrincipalName:
+    type: "email"
+    generator: "email"
+    required: true
+    description: "User principal name (UPN)"
+
+  userId:
+    type: "uuid"
+    generator: "uuid4"
+    required: true
+    description: "Unique identifier for the user"
+    correlation: "userPrincipalName"
+
+  appId:
+    type: "uuid"
+    generator: "uuid4"
+    required: true
+    description: "Unique identifier for the application"
+
+  appDisplayName:
+    type: "enum"
+    values:
+      - "Microsoft Azure Portal"
+      - "Office 365 Exchange Online"
+      - "Microsoft Teams"
+      - "OneDrive"
+      - "SharePoint Online"
+      - "Microsoft 365 Security and Compliance Center"
+      - "Azure Active Directory PowerShell"
+      - "Microsoft Graph API"
+    required: true
+    description: "Application name"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the client"
+
+  clientAppUsed:
+    type: "enum"
+    values:
+      - "Browser"
+      - "Mobile Apps and Desktop clients"
+      - "Exchange ActiveSync"
+      - "Other clients"
+      - "IMAP"
+      - "POP"
+      - "SMTP"
+    required: false
+    description: "Legacy client used for sign-in"
+    default: "Browser"
+    distribution:
+      Browser: 0.70
+      "Mobile Apps and Desktop clients": 0.20
+      "Exchange ActiveSync": 0.05
+      "Other clients": 0.05
+
+  deviceDetail:
+    type: "object"
+    required: true
+    description: "Device information"
+    fields:
+      deviceId:
+        type: "uuid"
+        generator: "uuid4"
+        required: false
+        description: "Unique device identifier"
+
+      displayName:
+        type: "string"
+        generator: "device_name"
+        required: false
+        description: "Device name"
+
+      operatingSystem:
+        type: "enum"
+        values:
+          - "Windows 10"
+          - "Windows 11"
+          - "MacOS"
+          - "iOS"
+          - "Android"
+          - "Linux"
+        required: false
+        distribution:
+          "Windows 10": 0.35
+          "Windows 11": 0.25
+          "MacOS": 0.15
+          "iOS": 0.10
+          "Android": 0.10
+          "Linux": 0.05
+
+      browser:
+        type: "enum"
+        values:
+          - "Chrome"
+          - "Edge"
+          - "Firefox"
+          - "Safari"
+        required: false
+        distribution:
+          Chrome: 0.45
+          Edge: 0.30
+          Firefox: 0.15
+          Safari: 0.10
+
+      isCompliant:
+        type: "boolean"
+        required: false
+        distribution:
+          true: 0.85
+          false: 0.15
+
+      isManaged:
+        type: "boolean"
+        required: false
+        distribution:
+          true: 0.80
+          false: 0.20
+
+  location:
+    type: "object"
+    required: true
+    description: "Sign-in location"
+    fields:
+      city:
+        type: "string"
+        generator: "city"
+        required: true
+
+      state:
+        type: "string"
+        generator: "state"
+        required: false
+
+      countryOrRegion:
+        type: "string"
+        generator: "country_code"
+        required: true
+
+      geoCoordinates:
+        type: "object"
+        required: false
+        fields:
+          latitude:
+            type: "float"
+            generator: "latitude"
+            required: true
+
+          longitude:
+            type: "float"
+            generator: "longitude"
+            required: true
+
+  status:
+    type: "object"
+    required: true
+    description: "Sign-in status"
+    fields:
+      errorCode:
+        type: "integer"
+        required: true
+        description: "Error code (0 for success)"
+        default: 0
+
+      failureReason:
+        type: "string"
+        required: false
+        description: "Reason for failure"
+
+      additionalDetails:
+        type: "string"
+        required: false
+        description: "Additional status information"
+
+  conditionalAccessStatus:
+    type: "enum"
+    values:
+      - "success"
+      - "failure"
+      - "notApplied"
+    required: true
+    description: "Conditional access policy status"
+    distribution:
+      success: 0.85
+      notApplied: 0.13
+      failure: 0.02
+
+  isInteractive:
+    type: "boolean"
+    required: true
+    description: "Whether the sign-in is interactive"
+    distribution:
+      true: 0.70
+      false: 0.30
+
+  riskDetail:
+    type: "enum"
+    values:
+      - "none"
+      - "adminGeneratedTemporaryPassword"
+      - "userPerformedSecuredPasswordChange"
+      - "userPerformedSecuredPasswordReset"
+      - "adminConfirmedSigninSafe"
+      - "aiConfirmedSigninSafe"
+      - "userPassedMFADrivenByRiskBasedPolicy"
+      - "adminDismissedAllRiskForUser"
+      - "hidden"
+    required: true
+    description: "Risk detail"
+    default: "none"
+    distribution:
+      none: 0.95
+      aiConfirmedSigninSafe: 0.03
+      userPassedMFADrivenByRiskBasedPolicy: 0.02
+
+  riskLevelAggregated:
+    type: "enum"
+    values:
+      - "none"
+      - "low"
+      - "medium"
+      - "high"
+      - "hidden"
+    required: true
+    description: "Aggregated risk level"
+    distribution:
+      none: 0.92
+      low: 0.05
+      medium: 0.02
+      high: 0.01
+
+  riskLevelDuringSignIn:
+    type: "enum"
+    values:
+      - "none"
+      - "low"
+      - "medium"
+      - "high"
+      - "hidden"
+    required: true
+    description: "Risk level during sign-in"
+    distribution:
+      none: 0.92
+      low: 0.05
+      medium: 0.02
+      high: 0.01
+
+  riskState:
+    type: "enum"
+    values:
+      - "none"
+      - "confirmedSafe"
+      - "remediated"
+      - "dismissed"
+      - "atRisk"
+      - "confirmedCompromised"
+    required: true
+    description: "Risk state"
+    distribution:
+      none: 0.93
+      confirmedSafe: 0.05
+      remediated: 0.01
+      atRisk: 0.01
+
+  resourceDisplayName:
+    type: "string"
+    required: true
+    description: "Resource accessed"
+    correlation: "appDisplayName"
+
+  resourceId:
+    type: "uuid"
+    generator: "uuid4"
+    required: true
+    description: "Unique identifier for the resource"
+
+# Pre-defined scenarios
+scenarios:
+  successful_login:
+    status.errorCode: 0
+    conditionalAccessStatus: "success"
+    isInteractive: true
+    riskLevelDuringSignIn: "none"
+    riskState: "none"
+
+  failed_login_bad_password:
+    status.errorCode: 50126
+    status.failureReason: "Invalid username or password"
+    conditionalAccessStatus: "notApplied"
+    isInteractive: true
+
+  failed_login_mfa_required:
+    status.errorCode: 50074
+    status.failureReason: "Strong authentication is required"
+    conditionalAccessStatus: "failure"
+    isInteractive: true
+
+  risky_login_blocked:
+    status.errorCode: 50053
+    status.failureReason: "Sign-in was blocked because it came from an IP address with malicious activity"
+    conditionalAccessStatus: "failure"
+    riskLevelDuringSignIn: "high"
+    riskState: "atRisk"
+
+  non_interactive_service:
+    isInteractive: false
+    clientAppUsed: "Other clients"
+    conditionalAccessStatus: "success"
+
+# Correlation rules
+correlation:
+  - field: "userId"
+    scope: "session"
+    correlation_with: "userPrincipalName"
+    description: "User ID must match UPN"
+
+  - field: "appId"
+    scope: "global"
+    correlation_with: "appDisplayName"
+    description: "App ID must match app display name"
