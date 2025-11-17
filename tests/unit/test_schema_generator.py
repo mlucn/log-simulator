@@ -109,3 +109,143 @@ class TestSchemaBasedGenerator:
         # Timestamps should be different
         timestamps = [log["id"]["time"] for log in logs]
         assert len(set(timestamps)) >= 2  # At least 2 different timestamps
+
+    def test_generate_with_scenario_overrides(self, generator):
+        """Test that scenario overrides work correctly."""
+        # Test user_login_failure scenario which has specific overrides
+        logs = generator.generate(count=1, scenario="user_login_failure")
+        assert len(logs) == 1
+        log = logs[0]
+
+        # Verify scenario-specific values
+        assert log["id"]["applicationName"] == "login"
+        assert log["events"][0]["type"] == "login"
+        assert log["events"][0]["name"] == "login_failure"
+
+    def test_nested_override(self, generator):
+        """Test _get_nested_override method."""
+        overrides = {"ipAddress": "10.0.0.1", "status.errorCode": "UNAUTHORIZED"}
+
+        # Test direct field override
+        result = generator._get_nested_override(overrides, "ipAddress")
+        assert result == "10.0.0.1"
+
+        # Test nested field override
+        result = generator._get_nested_override(overrides, "status.errorCode")
+        assert result == "UNAUTHORIZED"
+
+        # Test missing field
+        result = generator._get_nested_override(overrides, "nonexistent")
+        assert result is None
+
+    def test_generate_field_with_overrides(self, google_workspace_schema):
+        """Test _generate_field with overrides."""
+        gen = SchemaBasedGenerator(google_workspace_schema)
+        from datetime import datetime, timezone
+
+        base_time = datetime.now(timezone.utc)
+
+        field_spec = {"type": "string", "generator": "username"}
+        overrides = {"username": "custom_user"}
+
+        # With override
+        result = gen._generate_field(
+            "username", field_spec, base_time, 0, overrides, "username"
+        )
+        assert result == "custom_user"
+
+    def test_boolean_field_with_distribution(self, google_workspace_schema):
+        """Test generating boolean field with distribution."""
+        gen = SchemaBasedGenerator(google_workspace_schema)
+
+        field_spec = {
+            "type": "boolean",
+            "distribution": {True: 1.0, False: 0.0},  # Always true
+        }
+
+        result = gen._generate_boolean_field(field_spec)
+        assert result is True
+
+    def test_boolean_field_without_distribution(self, google_workspace_schema):
+        """Test generating boolean field without distribution."""
+        gen = SchemaBasedGenerator(google_workspace_schema)
+
+        field_spec = {"type": "boolean"}
+        result = gen._generate_boolean_field(field_spec)
+        assert isinstance(result, bool)
+
+    def test_enum_field_empty_values(self, google_workspace_schema):
+        """Test generating enum field with empty values list."""
+        gen = SchemaBasedGenerator(google_workspace_schema)
+
+        field_spec = {"type": "enum", "values": [], "default": "default_value"}
+
+        result = gen._generate_enum_field(field_spec)
+        assert result == "default_value"
+
+    def test_object_field_generation(self, google_workspace_schema):
+        """Test _generate_object_field method."""
+        gen = SchemaBasedGenerator(google_workspace_schema)
+        from datetime import datetime, timezone
+
+        base_time = datetime.now(timezone.utc)
+
+        field_spec = {
+            "type": "object",
+            "fields": {
+                "name": {"type": "string", "generator": "username"},
+                "email": {"type": "string", "generator": "email"},
+            },
+        }
+
+        result = gen._generate_object_field(field_spec, base_time, 0)
+        assert isinstance(result, dict)
+        assert "name" in result
+        assert "email" in result
+
+    def test_field_generator_coverage(self, google_workspace_schema):
+        """Test various field generator calls."""
+        gen = SchemaBasedGenerator(google_workspace_schema)
+        from datetime import datetime, timezone
+
+        base_time = datetime.now(timezone.utc)
+
+        generators_to_test = [
+            "uuid",
+            "full_name",
+            "username",
+            "user_agent",
+            "uri_path",
+            "city",
+            "state",
+            "country_code",
+            "device_name",
+            "email_subject",
+            "filename",
+            "referer",
+            "process_name",
+            "command_line",
+            "sha256",
+            "md5",
+            "domain_name",
+            "file_path",
+            "detection_name",
+            "registry_key",
+            "aws_user_agent",
+            "aws_principal_id",
+            "aws_arn",
+            "aws_account_id",
+            "aws_resource_arn",
+            "gcp_project_id",
+            "gcp_resource_name",
+            "sysmon_guid",
+            "windows_image_path",
+            "windows_user",
+            "sysmon_hashes",
+        ]
+
+        for generator in generators_to_test:
+            field_spec = {"type": "string", "generator": generator, "required": True}
+            result = gen._generate_field(f"test_{generator}", field_spec, base_time, 0)
+            assert result is not None
+            assert isinstance(result, str)

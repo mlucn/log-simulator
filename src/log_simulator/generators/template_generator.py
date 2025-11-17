@@ -8,7 +8,7 @@ realistic log generation with variable substitution.
 import json
 import random
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, cast
 
@@ -92,7 +92,7 @@ class TemplateBasedGenerator:
             Value with substituted variables
         """
         if base_time is None:
-            base_time = datetime.utcnow()
+            base_time = datetime.now(timezone.utc)
 
         if isinstance(value, str):
             # Find and replace all variables
@@ -216,7 +216,7 @@ class TemplateBasedGenerator:
         template = self.load_template(template_path)
 
         if base_time is None:
-            base_time = datetime.utcnow()
+            base_time = datetime.now(timezone.utc)
 
         logs = []
         for i in range(count):
@@ -252,7 +252,7 @@ class TemplateBasedGenerator:
             List of generated logs in chronological order
         """
         all_logs = []
-        base_time = datetime.utcnow()
+        base_time = datetime.now(timezone.utc)
 
         total_logs = len(techniques) * count_per_technique
         log_index = 0
