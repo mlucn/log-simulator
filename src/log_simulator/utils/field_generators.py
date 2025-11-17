@@ -8,7 +8,7 @@ timestamps, UUIDs, IP addresses, emails, etc.
 import random
 import string
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 
@@ -35,7 +35,7 @@ class FieldGenerator:
             ISO 8601 formatted timestamp string
         """
         if base_time is None:
-            base_time = datetime.utcnow()
+            base_time = datetime.now(timezone.utc)
 
         timestamp = base_time + timedelta(seconds=offset_seconds)
         return timestamp.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
