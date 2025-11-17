@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Simulator - Generate Realistic Test Logs</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Log Simulator</h1>
+            <p class="subtitle">Generate realistic synthetic logs for testing and development</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Generate Logs</h2>
+
+                <form id="generateForm">
+                    <div class="form-group">
+                        <label for="schema">
+                            Log Schema *
+                            <span class="help-text">Select the type of logs to generate</span>
+                        </label>
+                        <select id="schema" name="schema" required>
+                            <option value="">Loading schemas...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="count">
+                                Count *
+                                <span class="help-text">Number of logs (1-10,000)</span>
+                            </label>
+                            <input type="number" id="count" name="count" min="1" max="10000" value="10" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="timeSpread">
+                                Time Spread (seconds)
+                                <span class="help-text">Spread logs over time (0-86400)</span>
+                            </label>
+                            <input type="number" id="timeSpread" name="timeSpread" min="0" max="86400" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scenario">
+                            Scenario (optional)
+                            <span class="help-text">Pre-configured scenario</span>
+                        </label>
+                        <select id="scenario" name="scenario">
+                            <option value="">Default (random)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="generateBtn">
+                            <span class="btn-text">Generate Logs</span>
+                            <span class="spinner" style="display: none;">⏳</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="copyBtn" disabled>
+                            📋 Copy to Clipboard
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="downloadBtn" disabled>
+                            💾 Download JSON
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card" id="schemaInfoCard" style="display: none;">
+                <h3>Schema Information</h3>
+                <div id="schemaInfo"></div>
+            </div>
+
+            <div class="card" id="resultsCard" style="display: none;">
+                <div class="results-header">
+                    <h3>Generated Logs</h3>
+                    <span id="resultCount" class="badge"></span>
+                </div>
+                <div id="executionTime" class="execution-time"></div>
+                <pre id="output" class="output"></pre>
+            </div>
+
+            <div class="card" id="errorCard" style="display: none;">
+                <h3 class="error-title">⚠️ Error</h3>
+                <div id="errorMessage" class="error-message"></div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-links">
+                <a href="/api/v1/docs" target="_blank">📖 API Docs</a>
+                <a href="/api/v1/redoc" target="_blank">📚 ReDoc</a>
+                <a href="/api/v1/schemas" target="_blank">🔗 Schemas API</a>
+                <a href="https://github.com/mlucn/log-simulator" target="_blank">🐙 GitHub</a>
+            </div>
+            <p class="footer-text">Log Simulator v0.2.0 | Built with FastAPI & Vanilla JS</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
