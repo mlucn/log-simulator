@@ -6,7 +6,7 @@ This module generates logs based on YAML schema definitions.
 
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, cast
 
@@ -55,7 +55,7 @@ class SchemaBasedGenerator:
             List of generated log dictionaries
         """
         if base_time is None:
-            base_time = datetime.utcnow()
+            base_time = datetime.now(timezone.utc)
 
         logs = []
         scenario_overrides = {}

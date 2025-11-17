@@ -40,6 +40,8 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
+    "bandit[toml]>=1.7.5",
+    "safety>=3.0.0",
 ]
 
 api = [
@@ -126,4 +128,42 @@ testpaths = [
 ]
 pythonpath = [
     "src"
+]
+
+[tool.bandit]
+# Bandit configuration for security linting
+exclude_dirs = [
+    "tests/",
+    ".venv/",
+    "venv/",
+    "build/",
+    "dist/",
+    "*.egg-info/",
+]
+skips = [
+    "B101",  # assert_used - acceptable in tests
+    "B311",  # random - acceptable for log simulation
+    "B104",  # hardcoded_bind_all_interfaces - needed for Docker/API
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "tests/*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
 ]
