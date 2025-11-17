@@ -42,6 +42,19 @@ dev = [
     "pre-commit>=3.0.0",
 ]
 
+api = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "slowapi>=0.1.9",
+    "python-multipart>=0.0.6",
+]
+
+all = [
+    "log-simulator[dev,api]",
+]
+
 [project.urls]
 Homepage = "https://github.com/mlucn/log-simulator"
 Repository = "https://github.com/mlucn/log-simulator"
@@ -78,6 +91,8 @@ ignore = [
     "E501",  # line too long (handled by black)
     "S101",  # use of assert (acceptable in tests)
     "S311",  # pseudo-random generators (acceptable for log simulation)
+    "S104",  # binding to all interfaces (needed for Docker/API servers)
+    "B008",  # function call in argument defaults (FastAPI Depends pattern)
 ]
 
 [tool.mypy]
@@ -92,6 +107,16 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "log_simulator.api.*",
+    "fastapi.*",
+    "pydantic.*",
+    "pydantic_settings.*",
+    "slowapi.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"

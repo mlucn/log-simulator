@@ -1,0 +1,56 @@
+services:
+  # Main API service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: log-simulator-api
+    ports:
+      - "8080:8080"
+    environment:
+      # API Configuration
+      - LOG_SIM_DEBUG=false
+      - LOG_SIM_RATE_LIMIT_ENABLED=true
+      - LOG_SIM_RATE_LIMIT_DEFAULT=10/minute
+      - LOG_SIM_RATE_LIMIT_GENERATE=5/minute
+      - LOG_SIM_MAX_LOG_COUNT=10000
+      - LOG_SIM_MAX_TIME_SPREAD=86400
+      # CORS (allow all origins for development)
+      - LOG_SIM_CORS_ORIGINS=["*"]
+    volumes:
+      # Mount data directory for persistence
+      - ./data:/app/data
+      # Mount schemas for live updates during development
+      - ./src/log_simulator/schemas:/app/src/log_simulator/schemas:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Development service with auto-reload
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: log-simulator-api-dev
+    ports:
+      - "8081:8080"
+    environment:
+      - LOG_SIM_DEBUG=true
+      - LOG_SIM_RATE_LIMIT_ENABLED=false  # Disable for easier testing
+      - LOG_SIM_CORS_ORIGINS=["*"]
+    volumes:
+      # Mount entire source for hot reload
+      - ./src:/app/src
+      - ./data:/app/data
+    command: ["uvicorn", "log_simulator.api.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    restart: unless-stopped
+    profiles:
+      - dev
+
+volumes:
+  data:
+    driver: local
