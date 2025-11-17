@@ -43,10 +43,15 @@ async function loadSchemas() {
             const optgroup = document.createElement('optgroup');
             optgroup.label = category.replace('_', ' ').toUpperCase();
 
-            schemas[category].forEach(schema => {
+            schemas[category].forEach(schemaPath => {
                 const option = document.createElement('option');
-                option.value = schema.path;
-                option.textContent = schema.name;
+                option.value = schemaPath;
+                // Extract readable name from path (e.g., "cloud_identity/google_workspace" -> "Google Workspace")
+                const namePart = schemaPath.split('/')[1] || schemaPath;
+                option.textContent = namePart
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
                 option.dataset.category = category;
                 optgroup.appendChild(option);
             });
