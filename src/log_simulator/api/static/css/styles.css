@@ -112,6 +112,7 @@ select {
     font-size: 1rem;
     transition: all 0.2s;
     background-color: white;
+    color: var(--text-primary);
 }
 
 input[type="number"]:focus,
@@ -119,6 +120,22 @@ select:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Dropdown options styling */
+select option,
+select optgroup {
+    color: var(--text-primary);
+    background-color: white;
+}
+
+select optgroup {
+    font-weight: 600;
+    font-style: normal;
+}
+
+select option {
+    padding: 0.5rem;
 }
 
 /* Buttons */
