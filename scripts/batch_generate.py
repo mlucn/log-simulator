@@ -19,42 +19,61 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from log_simulator import SchemaBasedGenerator
 
 
+def generate_chunk(
+    schema_path: str,
+    count: int,
+    scenario: Any,
+    base_time: datetime,
+    time_spread_seconds: int,
+    output_file: Path,
+) -> int:
+    """
+    Generate a single chunk of logs.
+    Must be a top-level function for multiprocessing pickling.
+    """
+    # Re-instantiate generator for each process to ensure thread safety/randomness
+    generator = SchemaBasedGenerator(schema_path)
+
+    logs = generator.generate(
+        count=count,
+        scenario=scenario,
+        base_time=base_time,
+        time_spread_seconds=time_spread_seconds,
+    )
+
+    with open(output_file, "w") as f:
+        json.dump(logs, f)
+
+    return len(logs)
+
+
 class BatchGenerator:
     """Batch log generator for high-volume production."""
 
     def __init__(self, schemas_dir: Path):
         """Initialize batch generator."""
         self.schemas_dir = schemas_dir
-        self.generators = {}
-
-    def load_generator(self, log_type: str, schema_path: str):
-        """Load a schema generator."""
-        if log_type not in self.generators:
-            full_path = self.schemas_dir / schema_path
-            self.generators[log_type] = SchemaBasedGenerator(str(full_path))
-        return self.generators[log_type]
 
     def generate_batch(
         self, config: Dict[str, Any], output_dir: Path, chunk_size: int = 10000
     ):
         """
-        Generate logs in batches to avoid memory issues.
+        Generate logs in batches using multiprocessing.
 
         Args:
             config: Generation configuration
             output_dir: Output directory
             chunk_size: Number of logs per file chunk
         """
+        import multiprocessing
+
         log_type = config["type"]
         total_count = config["count"]
-        schema_path = config["schema"]
+        schema_path = str(self.schemas_dir / config["schema"])
         scenario = config.get("scenario")
         time_spread = config.get("time_spread_hours", 24)
 
         print(f"\nGenerating {total_count:,} {log_type} logs...")
-
-        # Load generator
-        generator = self.load_generator(log_type, schema_path)
 
         # Create output directory
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -63,7 +82,7 @@ class BatchGenerator:
         num_chunks = (total_count + chunk_size - 1) // chunk_size
         base_time = datetime.now() - timedelta(hours=time_spread)
 
-        total_generated = 0
+        tasks = []
         for chunk_num in range(num_chunks):
             chunk_start = chunk_num * chunk_size
             chunk_end = min(chunk_start + chunk_size, total_count)
@@ -73,26 +92,36 @@ class BatchGenerator:
             time_offset = int((chunk_start / total_count) * (time_spread * 3600))
             chunk_base_time = base_time + timedelta(seconds=time_offset)
 
-            # Generate chunk
-            logs = generator.generate(
-                count=chunk_count,
-                scenario=scenario,
-                base_time=chunk_base_time,
-                time_spread_seconds=int(
-                    (chunk_count / total_count) * (time_spread * 3600)
-                ),
-            )
+            # Calculate spread for this chunk
+            chunk_spread = int((chunk_count / total_count) * (time_spread * 3600))
 
-            # Save chunk
             output_file = output_dir / f"{log_type}_chunk_{chunk_num:04d}.json"
-            with open(output_file, "w") as f:
-                json.dump(logs, f)
 
-            total_generated += len(logs)
-            progress = (total_generated / total_count) * 100
-            print(
-                f"  Progress: {total_generated:,}/{total_count:,} ({progress:.1f}%) - {output_file.name}"
+            tasks.append(
+                (
+                    schema_path,
+                    chunk_count,
+                    scenario,
+                    chunk_base_time,
+                    chunk_spread,
+                    output_file,
+                )
             )
+
+        # Use number of CPUs available
+        num_processes = min(multiprocessing.cpu_count(), num_chunks)
+        print(f"  Using {num_processes} processes for {num_chunks} chunks")
+
+        total_generated = 0
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            # Map tasks to the worker function
+            # We use starmap to unpack arguments
+            results = pool.starmap(generate_chunk, tasks)
+
+            for i, count in enumerate(results):
+                total_generated += count
+                progress = (total_generated / total_count) * 100
+                print(f"  Chunk {i+1}/{num_chunks} completed ({progress:.1f}%)")
 
         print(f"✓ Completed: {total_generated:,} logs generated")
 

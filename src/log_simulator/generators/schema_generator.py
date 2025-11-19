@@ -33,7 +33,16 @@ class SchemaBasedGenerator:
     def _load_schema(self) -> dict[str, Any]:
         """Load and parse the YAML schema file."""
         with open(self.schema_path) as f:
-            return cast(dict[str, Any], yaml.safe_load(f))
+            raw_schema = yaml.safe_load(f)
+
+        # Validate with Pydantic
+        from ..models.schema import LogSchema
+
+        # This will raise ValidationError if schema is invalid
+        validated_schema = LogSchema(**raw_schema)
+
+        # Return dict for backward compatibility with existing code
+        return cast(dict[str, Any], validated_schema.model_dump(exclude_none=True))
 
     def generate(
         self,
