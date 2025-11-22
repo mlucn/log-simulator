@@ -1,0 +1,511 @@
+# Google Workspace Activity Log Schema - Admin Console
+# Compatible with Google SecOps Chronicle WORKSPACE_ACTIVITY parser
+# Reference: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities
+# Chronicle Documentation: https://cloud.google.com/chronicle/docs/ingestion/default-parsers/collect-workspace-logs
+
+schema_version: "1.0"
+log_type: "WORKSPACE_ACTIVITY"
+source_api: "Google Workspace Admin SDK Reports API v1"
+application_name: "admin"
+description: "Google Workspace Activity logs - Admin console events (user management, group management, domain settings, security settings)"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+chronicle_compatible: true
+
+# Field definitions - Standard Google Workspace Activity Log structure
+fields:
+  kind:
+    type: "constant"
+    value: "admin#reports#activity"
+    required: true
+    description: "Resource type identifier for Google Workspace Activity"
+
+  id:
+    type: "object"
+    required: true
+    description: "Unique identifier for the activity"
+    fields:
+      time:
+        type: "datetime"
+        format: "iso8601"
+        required: true
+        description: "Time of occurrence in ISO 8601 format"
+
+      uniqueQualifier:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 16
+        required: true
+        description: "Unique qualifier for the event"
+
+      applicationName:
+        type: "constant"
+        value: "admin"
+        required: true
+        description: "Google Workspace application name (locked to 'admin')"
+
+      customerId:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "C"
+          length: 8
+        required: true
+        description: "Unique identifier for customer/organization"
+
+  actor:
+    type: "object"
+    required: true
+    description: "User or application performing the action"
+    fields:
+      callerType:
+        type: "enum"
+        values:
+          - "USER"
+          - "APPLICATION"
+          - "SERVICE_ACCOUNT"
+        required: true
+        description: "Type of actor performing the action"
+        distribution:
+          USER: 0.90
+          APPLICATION: 0.05
+          SERVICE_ACCOUNT: 0.05
+
+      email:
+        type: "email"
+        generator: "email"
+        required: true
+        description: "Actor's email address"
+
+      profileId:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 21
+        required: true
+        description: "Actor's profile ID"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the actor"
+
+  events:
+    type: "array"
+    required: true
+    description: "List of events in this activity"
+    min_items: 1
+    max_items: 3
+    item:
+      type: "object"
+      fields:
+        type:
+          type: "string"
+          required: true
+          description: "Event type category (e.g., user_settings, group_settings, domain_settings)"
+
+        name:
+          type: "string"
+          required: true
+          description: "Event name (specific action within the event type)"
+
+        parameters:
+          type: "array"
+          required: false
+          description: "Additional event-specific parameters"
+          item:
+            type: "object"
+            fields:
+              name:
+                type: "string"
+                required: true
+                description: "Parameter name"
+
+              value:
+                type: "string"
+                required: false
+                description: "Parameter value (for single values)"
+
+              intValue:
+                type: "integer"
+                required: false
+                description: "Parameter value (for integer values)"
+
+              boolValue:
+                type: "boolean"
+                required: false
+                description: "Parameter value (for boolean values)"
+
+              multiValue:
+                type: "array"
+                required: false
+                description: "Parameter value (for multiple values)"
+                item:
+                  type: "string"
+
+# Pre-defined scenarios for different admin event types
+# Organized by event_type > event_name
+
+scenarios:
+  # ==========================================
+  # USER_SETTINGS - User management events
+  # ==========================================
+
+  user_create:
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "create_user"
+        parameters:
+          - name: "user_email"
+            value: "newuser@example.com"
+          - name: "user_name"
+            value: "New User"
+          - name: "is_admin"
+            boolValue: false
+
+  user_delete:
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "delete_user"
+        parameters:
+          - name: "user_email"
+            value: "olduser@example.com"
+
+  user_suspend:
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "suspend_user"
+        parameters:
+          - name: "user_email"
+            value: "suspended@example.com"
+          - name: "suspension_reason"
+            value: "Policy violation"
+
+  user_restore:
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "undelete_user"
+        parameters:
+          - name: "user_email"
+            value: "restored@example.com"
+
+  user_password_change:
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "change_password"
+        parameters:
+          - name: "user_email"
+            value: "user@example.com"
+
+  user_rename:
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "rename_user"
+        parameters:
+          - name: "user_email"
+            value: "oldname@example.com"
+          - name: "new_user_email"
+            value: "newname@example.com"
+
+  grant_admin_privilege:
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "grant_admin_privilege"
+        parameters:
+          - name: "user_email"
+            value: "newadmin@example.com"
+          - name: "privilege_name"
+            value: "SUPER_ADMIN"
+
+  revoke_admin_privilege:
+    actor.callerType: "USER"
+    events:
+      - type: "user_settings"
+        name: "revoke_admin_privilege"
+        parameters:
+          - name: "user_email"
+            value: "formeradmin@example.com"
+          - name: "privilege_name"
+            value: "SUPER_ADMIN"
+
+  # ==========================================
+  # GROUP_SETTINGS - Group management events
+  # ==========================================
+
+  group_create:
+    actor.callerType: "USER"
+    events:
+      - type: "group_settings"
+        name: "create_group"
+        parameters:
+          - name: "group_email"
+            value: "newteam@example.com"
+          - name: "group_name"
+            value: "New Team"
+
+  group_delete:
+    actor.callerType: "USER"
+    events:
+      - type: "group_settings"
+        name: "delete_group"
+        parameters:
+          - name: "group_email"
+            value: "oldteam@example.com"
+
+  add_group_member:
+    actor.callerType: "USER"
+    events:
+      - type: "group_settings"
+        name: "add_group_member"
+        parameters:
+          - name: "group_email"
+            value: "team@example.com"
+          - name: "user_email"
+            value: "newmember@example.com"
+
+  remove_group_member:
+    actor.callerType: "USER"
+    events:
+      - type: "group_settings"
+        name: "remove_group_member"
+        parameters:
+          - name: "group_email"
+            value: "team@example.com"
+          - name: "user_email"
+            value: "oldmember@example.com"
+
+  change_group_setting:
+    actor.callerType: "USER"
+    events:
+      - type: "group_settings"
+        name: "change_group_setting"
+        parameters:
+          - name: "group_email"
+            value: "team@example.com"
+          - name: "setting_name"
+            value: "who_can_post_message"
+          - name: "old_value"
+            value: "ANYONE_CAN_POST"
+          - name: "new_value"
+            value: "ALL_MEMBERS_CAN_POST"
+
+  # ==========================================
+  # DOMAIN_SETTINGS - Domain configuration
+  # ==========================================
+
+  change_domain_name:
+    actor.callerType: "USER"
+    events:
+      - type: "domain_settings"
+        name: "change_domain_name"
+        parameters:
+          - name: "domain_name"
+            value: "example.com"
+          - name: "domain_alias"
+            value: "newdomain.com"
+
+  add_domain_alias:
+    actor.callerType: "USER"
+    events:
+      - type: "domain_settings"
+        name: "add_domain_alias"
+        parameters:
+          - name: "domain_alias"
+            value: "alias.example.com"
+
+  remove_domain_alias:
+    actor.callerType: "USER"
+    events:
+      - type: "domain_settings"
+        name: "remove_domain_alias"
+        parameters:
+          - name: "domain_alias"
+            value: "old-alias.example.com"
+
+  # ==========================================
+  # APPLICATION_SETTINGS - App configuration
+  # ==========================================
+
+  add_application:
+    actor.callerType: "USER"
+    events:
+      - type: "application_settings"
+        name: "add_application"
+        parameters:
+          - name: "application_name"
+            value: "Third Party App"
+          - name: "application_id"
+            value: "123456789"
+
+  remove_application:
+    actor.callerType: "USER"
+    events:
+      - type: "application_settings"
+        name: "remove_application"
+        parameters:
+          - name: "application_name"
+            value: "Old Third Party App"
+          - name: "application_id"
+            value: "987654321"
+
+  change_application_setting:
+    actor.callerType: "USER"
+    events:
+      - type: "application_settings"
+        name: "change_application_setting"
+        parameters:
+          - name: "application_name"
+            value: "Gmail"
+          - name: "setting_name"
+            value: "attachment_size_limit"
+          - name: "old_value"
+            value: "25"
+          - name: "new_value"
+            value: "50"
+
+  # ==========================================
+  # SECURITY_SETTINGS - Security configuration
+  # ==========================================
+
+  change_2sv_settings:
+    actor.callerType: "USER"
+    events:
+      - type: "security_settings"
+        name: "change_two_step_verification_enrollment_period_duration"
+        parameters:
+          - name: "org_unit_name"
+            value: "Engineering"
+          - name: "old_value"
+            intValue: 7
+          - name: "new_value"
+            intValue: 14
+
+  enable_2sv_enforcement:
+    actor.callerType: "USER"
+    events:
+      - type: "security_settings"
+        name: "change_two_step_verification_start_date"
+        parameters:
+          - name: "org_unit_name"
+            value: "Sales"
+          - name: "new_value"
+            value: "2025-01-01"
+
+  change_password_policy:
+    actor.callerType: "USER"
+    events:
+      - type: "security_settings"
+        name: "change_password_length_setting"
+        parameters:
+          - name: "org_unit_name"
+            value: "Executive"
+          - name: "old_value"
+            intValue: 8
+          - name: "new_value"
+            intValue: 12
+
+  change_session_timeout:
+    actor.callerType: "USER"
+    events:
+      - type: "security_settings"
+        name: "change_session_control_settings"
+        parameters:
+          - name: "org_unit_name"
+            value: "Finance"
+          - name: "setting_name"
+            value: "web_session_duration"
+          - name: "old_value"
+            value: "never_expire"
+          - name: "new_value"
+            value: "8_hours"
+
+  # ==========================================
+  # CHROME_OS_SETTINGS - Chrome OS management
+  # ==========================================
+
+  chrome_device_enrolled:
+    actor.callerType: "USER"
+    events:
+      - type: "chrome_os_settings"
+        name: "enroll_chrome_os_device"
+        parameters:
+          - name: "device_id"
+            value: "chrome-device-12345"
+          - name: "serial_number"
+            value: "SN123456789"
+
+  chrome_device_disabled:
+    actor.callerType: "USER"
+    events:
+      - type: "chrome_os_settings"
+        name: "disable_chrome_os_device"
+        parameters:
+          - name: "device_id"
+            value: "chrome-device-67890"
+          - name: "reason"
+            value: "Lost device"
+
+  # ==========================================
+  # MOBILE_SETTINGS - Mobile device management
+  # ==========================================
+
+  mobile_device_approved:
+    actor.callerType: "USER"
+    events:
+      - type: "mobile_settings"
+        name: "approve_mobile_device"
+        parameters:
+          - name: "device_id"
+            value: "mobile-device-abc123"
+          - name: "device_type"
+            value: "IOS_SYNC"
+
+  mobile_device_blocked:
+    actor.callerType: "USER"
+    events:
+      - type: "mobile_settings"
+        name: "block_mobile_device"
+        parameters:
+          - name: "device_id"
+            value: "mobile-device-def456"
+          - name: "device_type"
+            value: "ANDROID"
+          - name: "reason"
+            value: "Security policy violation"
+
+  mobile_device_wiped:
+    actor.callerType: "USER"
+    events:
+      - type: "mobile_settings"
+        name: "account_wipe_mobile_device"
+        parameters:
+          - name: "device_id"
+            value: "mobile-device-ghi789"
+          - name: "device_type"
+            value: "ANDROID"
+
+# Correlation rules - maintain consistency across related logs
+correlation:
+  - field: "id.customerId"
+    scope: "global"
+    description: "Same customer ID for all logs from one organization"
+
+  - field: "actor.email"
+    scope: "session"
+    description: "Same admin user across related activities"
+
+  - field: "actor.profileId"
+    scope: "session"
+    correlation_with: "actor.email"
+    description: "Profile ID must match email"

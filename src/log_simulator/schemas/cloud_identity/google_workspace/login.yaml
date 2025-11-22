@@ -1,0 +1,424 @@
+# Google Workspace Activity Log Schema - Login/Authentication
+# Compatible with Google SecOps Chronicle WORKSPACE_ACTIVITY parser
+# Reference: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities
+# Chronicle Documentation: https://cloud.google.com/chronicle/docs/ingestion/default-parsers/collect-workspace-logs
+
+schema_version: "1.0"
+log_type: "WORKSPACE_ACTIVITY"
+source_api: "Google Workspace Admin SDK Reports API v1"
+application_name: "login"
+description: "Google Workspace Activity logs - Login and authentication events (login success, failures, 2FA, suspicious activity)"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+chronicle_compatible: true
+
+# Field definitions - Standard Google Workspace Activity Log structure
+fields:
+  kind:
+    type: "constant"
+    value: "admin#reports#activity"
+    required: true
+    description: "Resource type identifier for Google Workspace Activity"
+
+  id:
+    type: "object"
+    required: true
+    description: "Unique identifier for the activity"
+    fields:
+      time:
+        type: "datetime"
+        format: "iso8601"
+        required: true
+        description: "Time of occurrence in ISO 8601 format"
+
+      uniqueQualifier:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 16
+        required: true
+        description: "Unique qualifier for the event"
+
+      applicationName:
+        type: "constant"
+        value: "login"
+        required: true
+        description: "Google Workspace application name (locked to 'login')"
+
+      customerId:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "C"
+          length: 8
+        required: true
+        description: "Unique identifier for customer/organization"
+
+  actor:
+    type: "object"
+    required: true
+    description: "User or application performing the action"
+    fields:
+      callerType:
+        type: "enum"
+        values:
+          - "USER"
+          - "APPLICATION"
+        required: true
+        description: "Type of actor performing the action"
+        distribution:
+          USER: 0.95
+          APPLICATION: 0.05
+
+      email:
+        type: "email"
+        generator: "email"
+        required: true
+        description: "Actor's email address"
+
+      profileId:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 21
+        required: true
+        description: "Actor's profile ID"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the actor"
+
+  events:
+    type: "array"
+    required: true
+    description: "List of events in this activity"
+    min_items: 1
+    max_items: 2
+    item:
+      type: "object"
+      fields:
+        type:
+          type: "string"
+          required: true
+          description: "Event type category (e.g., login, logout, account_warning, suspicious_login)"
+
+        name:
+          type: "string"
+          required: true
+          description: "Event name (specific action within the event type)"
+
+        parameters:
+          type: "array"
+          required: false
+          description: "Additional event-specific parameters"
+          item:
+            type: "object"
+            fields:
+              name:
+                type: "string"
+                required: true
+                description: "Parameter name"
+
+              value:
+                type: "string"
+                required: false
+                description: "Parameter value (for single values)"
+
+              intValue:
+                type: "integer"
+                required: false
+                description: "Parameter value (for integer values)"
+
+              boolValue:
+                type: "boolean"
+                required: false
+                description: "Parameter value (for boolean values)"
+
+              multiValue:
+                type: "array"
+                required: false
+                description: "Parameter value (for multiple values)"
+                item:
+                  type: "string"
+
+# Pre-defined scenarios for different Login event types
+# Organized by event_type > event_name
+
+scenarios:
+  # ==========================================
+  # LOGIN - Login attempt events
+  # ==========================================
+
+  login_success:
+    actor.callerType: "USER"
+    events:
+      - type: "login"
+        name: "login_success"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "is_second_factor"
+            boolValue: false
+
+  login_success_with_2fa:
+    actor.callerType: "USER"
+    events:
+      - type: "login"
+        name: "login_success"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "is_second_factor"
+            boolValue: true
+          - name: "login_challenge_method"
+            value: "totp"
+
+  login_success_saml:
+    actor.callerType: "USER"
+    events:
+      - type: "login"
+        name: "login_success"
+        parameters:
+          - name: "login_type"
+            value: "saml"
+          - name: "is_second_factor"
+            boolValue: false
+          - name: "saml_third_party_provider"
+            value: "Okta"
+
+  login_failure:
+    actor.callerType: "USER"
+    events:
+      - type: "login"
+        name: "login_failure"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "login_failure_type"
+            value: "wrong_password"
+
+  login_failure_invalid_password:
+    actor.callerType: "USER"
+    events:
+      - type: "login"
+        name: "login_failure"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "login_failure_type"
+            value: "login_failure_invalid_password"
+
+  login_failure_account_disabled:
+    actor.callerType: "USER"
+    events:
+      - type: "login"
+        name: "login_failure"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "login_failure_type"
+            value: "login_failure_account_disabled"
+
+  login_failure_suspended:
+    actor.callerType: "USER"
+    events:
+      - type: "login"
+        name: "login_failure"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "login_failure_type"
+            value: "login_failure_suspended"
+
+  login_verification:
+    actor.callerType: "USER"
+    events:
+      - type: "login"
+        name: "login_verification"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "login_challenge_method"
+            value: "backup_code"
+
+  # ==========================================
+  # LOGOUT - Logout events
+  # ==========================================
+
+  logout:
+    actor.callerType: "USER"
+    events:
+      - type: "logout"
+        name: "logout"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+
+  # ==========================================
+  # ACCOUNT_WARNING - Security warnings
+  # ==========================================
+
+  account_disabled_password_leak:
+    actor.callerType: "USER"
+    events:
+      - type: "account_warning"
+        name: "account_disabled_password_leak"
+        parameters:
+          - name: "affected_email_address"
+            value: "compromised@example.com"
+
+  account_disabled_hijacked:
+    actor.callerType: "USER"
+    events:
+      - type: "account_warning"
+        name: "account_disabled_hijacked"
+        parameters:
+          - name: "affected_email_address"
+            value: "hijacked@example.com"
+
+  account_disabled_spamming:
+    actor.callerType: "USER"
+    events:
+      - type: "account_warning"
+        name: "account_disabled_spamming"
+        parameters:
+          - name: "affected_email_address"
+            value: "spammer@example.com"
+
+  # ==========================================
+  # SUSPICIOUS_LOGIN - Suspicious activity
+  # ==========================================
+
+  suspicious_login:
+    actor.callerType: "USER"
+    events:
+      - type: "suspicious_login"
+        name: "suspicious_login"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "is_suspicious"
+            boolValue: true
+          - name: "login_challenge_method"
+            value: "idv_preregistered_phone"
+
+  suspicious_login_blocked:
+    actor.callerType: "USER"
+    events:
+      - type: "suspicious_login"
+        name: "suspicious_login"
+        parameters:
+          - name: "login_type"
+            value: "google_password"
+          - name: "is_suspicious"
+            boolValue: true
+          - name: "login_failure_type"
+            value: "login_failure_challenge_required"
+
+  # ==========================================
+  # 2SV_CHANGE - Two-step verification changes
+  # ==========================================
+
+  2sv_enroll:
+    actor.callerType: "USER"
+    events:
+      - type: "2sv_change"
+        name: "2sv_enroll"
+        parameters:
+          - name: "2sv_method"
+            value: "totp"
+
+  2sv_disable:
+    actor.callerType: "USER"
+    events:
+      - type: "2sv_change"
+        name: "2sv_disable"
+        parameters:
+          - name: "2sv_method"
+            value: "backup_codes"
+
+  # ==========================================
+  # PASSWORD_EDIT - Password changes
+  # ==========================================
+
+  password_edit:
+    actor.callerType: "USER"
+    events:
+      - type: "password_edit"
+        name: "password_edit"
+        parameters:
+          - name: "changed_by"
+            value: "user"
+
+  password_edit_admin:
+    actor.callerType: "USER"
+    events:
+      - type: "password_edit"
+        name: "password_edit"
+        parameters:
+          - name: "changed_by"
+            value: "admin"
+          - name: "target_user"
+            value: "resetuser@example.com"
+
+  # ==========================================
+  # RECOVERY_EMAIL_EDIT - Recovery email changes
+  # ==========================================
+
+  recovery_email_edit:
+    actor.callerType: "USER"
+    events:
+      - type: "recovery_email_edit"
+        name: "recovery_email_edit"
+        parameters:
+          - name: "old_value"
+            value: "old-recovery@gmail.com"
+          - name: "new_value"
+            value: "new-recovery@gmail.com"
+
+  # ==========================================
+  # RECOVERY_PHONE_EDIT - Recovery phone changes
+  # ==========================================
+
+  recovery_phone_edit:
+    actor.callerType: "USER"
+    events:
+      - type: "recovery_phone_edit"
+        name: "recovery_phone_edit"
+        parameters:
+          - name: "old_value"
+            value: "+1-555-0100"
+          - name: "new_value"
+            value: "+1-555-0200"
+
+  # ==========================================
+  # GOV_ATTACK_WARNING - Government-backed attack warnings
+  # ==========================================
+
+  gov_attack_warning:
+    actor.callerType: "USER"
+    events:
+      - type: "gov_attack_warning"
+        name: "gov_attack_warning"
+        parameters:
+          - name: "affected_email_address"
+            value: "targeted@example.com"
+
+# Correlation rules - maintain consistency across related logs
+correlation:
+  - field: "id.customerId"
+    scope: "global"
+    description: "Same customer ID for all logs from one organization"
+
+  - field: "actor.email"
+    scope: "session"
+    description: "Same user across related activities"
+
+  - field: "actor.profileId"
+    scope: "session"
+    correlation_with: "actor.email"
+    description: "Profile ID must match email"

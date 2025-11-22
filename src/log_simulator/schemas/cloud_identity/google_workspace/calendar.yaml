@@ -1,0 +1,407 @@
+# Google Workspace Activity Log Schema - Google Calendar
+# Compatible with Google SecOps Chronicle WORKSPACE_ACTIVITY parser
+# Reference: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities
+# Chronicle Documentation: https://cloud.google.com/chronicle/docs/ingestion/default-parsers/collect-workspace-logs
+
+schema_version: "1.0"
+log_type: "WORKSPACE_ACTIVITY"
+source_api: "Google Workspace Admin SDK Reports API v1"
+application_name: "calendar"
+description: "Google Workspace Activity logs - Google Calendar events (calendar creation, event changes, ACL changes, settings)"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+chronicle_compatible: true
+
+# Field definitions - Standard Google Workspace Activity Log structure
+fields:
+  kind:
+    type: "constant"
+    value: "admin#reports#activity"
+    required: true
+    description: "Resource type identifier for Google Workspace Activity"
+
+  id:
+    type: "object"
+    required: true
+    description: "Unique identifier for the activity"
+    fields:
+      time:
+        type: "datetime"
+        format: "iso8601"
+        required: true
+        description: "Time of occurrence in ISO 8601 format"
+
+      uniqueQualifier:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 16
+        required: true
+        description: "Unique qualifier for the event"
+
+      applicationName:
+        type: "constant"
+        value: "calendar"
+        required: true
+        description: "Google Workspace application name (locked to 'calendar')"
+
+      customerId:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "C"
+          length: 8
+        required: true
+        description: "Unique identifier for customer/organization"
+
+  actor:
+    type: "object"
+    required: true
+    description: "User or application performing the action"
+    fields:
+      callerType:
+        type: "enum"
+        values:
+          - "USER"
+          - "APPLICATION"
+        required: true
+        description: "Type of actor performing the action"
+        distribution:
+          USER: 0.95
+          APPLICATION: 0.05
+
+      email:
+        type: "email"
+        generator: "email"
+        required: true
+        description: "Actor's email address"
+
+      profileId:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 21
+        required: true
+        description: "Actor's profile ID"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the actor"
+
+  events:
+    type: "array"
+    required: true
+    description: "List of events in this activity"
+    min_items: 1
+    max_items: 2
+    item:
+      type: "object"
+      fields:
+        type:
+          type: "string"
+          required: true
+          description: "Event type category (e.g., calendar_change, event_change)"
+
+        name:
+          type: "string"
+          required: true
+          description: "Event name (specific action within the event type)"
+
+        parameters:
+          type: "array"
+          required: false
+          description: "Additional event-specific parameters"
+          item:
+            type: "object"
+            fields:
+              name:
+                type: "string"
+                required: true
+                description: "Parameter name"
+
+              value:
+                type: "string"
+                required: false
+                description: "Parameter value (for single values)"
+
+              intValue:
+                type: "integer"
+                required: false
+                description: "Parameter value (for integer values)"
+
+              boolValue:
+                type: "boolean"
+                required: false
+                description: "Parameter value (for boolean values)"
+
+              multiValue:
+                type: "array"
+                required: false
+                description: "Parameter value (for multiple values)"
+                item:
+                  type: "string"
+
+# Pre-defined scenarios for different Calendar event types
+# Organized by event_type > event_name
+
+scenarios:
+  # ==========================================
+  # CALENDAR_CHANGE - Calendar-level changes
+  # ==========================================
+
+  calendar_create:
+    actor.callerType: "USER"
+    events:
+      - type: "calendar_change"
+        name: "create_calendar"
+        parameters:
+          - name: "calendar_id"
+            value: "team-calendar@example.com"
+          - name: "calendar_title"
+            value: "Team Schedule"
+
+  calendar_delete:
+    actor.callerType: "USER"
+    events:
+      - type: "calendar_change"
+        name: "delete_calendar"
+        parameters:
+          - name: "calendar_id"
+            value: "old-calendar@example.com"
+          - name: "calendar_title"
+            value: "Obsolete Calendar"
+
+  change_calendar_acls:
+    actor.callerType: "USER"
+    events:
+      - type: "calendar_change"
+        name: "change_calendar_acls"
+        parameters:
+          - name: "calendar_id"
+            value: "shared-calendar@example.com"
+          - name: "calendar_title"
+            value: "Shared Team Calendar"
+          - name: "grantee_email"
+            value: "colleague@example.com"
+          - name: "access_level"
+            value: "writer"
+
+  change_calendar_visibility:
+    actor.callerType: "USER"
+    events:
+      - type: "calendar_change"
+        name: "change_calendar_setting"
+        parameters:
+          - name: "calendar_id"
+            value: "public-calendar@example.com"
+          - name: "calendar_title"
+            value: "Public Events"
+          - name: "setting_name"
+            value: "visibility"
+          - name: "old_value"
+            value: "private"
+          - name: "new_value"
+            value: "public"
+
+  # ==========================================
+  # EVENT_CHANGE - Calendar event changes
+  # ==========================================
+
+  event_create:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "create_event"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_title"
+            value: "Team Meeting"
+          - name: "event_id"
+            value: "evt_abc123456"
+          - name: "start_time"
+            value: "2025-01-15T14:00:00Z"
+          - name: "end_time"
+            value: "2025-01-15T15:00:00Z"
+
+  event_delete:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "delete_event"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_title"
+            value: "Cancelled Meeting"
+          - name: "event_id"
+            value: "evt_xyz789012"
+
+  event_edit:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "change_event_title"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_id"
+            value: "evt_def456789"
+          - name: "old_value"
+            value: "Project Review"
+          - name: "new_value"
+            value: "Quarterly Project Review"
+
+  event_move:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "move_event"
+        parameters:
+          - name: "event_id"
+            value: "evt_ghi012345"
+          - name: "event_title"
+            value: "Training Session"
+          - name: "source_calendar_id"
+            value: "old-calendar@example.com"
+          - name: "destination_calendar_id"
+            value: "new-calendar@example.com"
+
+  add_event_guest:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "add_event_guest"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_title"
+            value: "Client Meeting"
+          - name: "event_id"
+            value: "evt_jkl345678"
+          - name: "guest_email"
+            value: "newattendee@example.com"
+
+  remove_event_guest:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "remove_event_guest"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_title"
+            value: "Strategy Session"
+          - name: "event_id"
+            value: "evt_mno678901"
+          - name: "guest_email"
+            value: "formerattendee@example.com"
+
+  change_event_time:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "change_event_start_time"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_title"
+            value: "Weekly Standup"
+          - name: "event_id"
+            value: "evt_pqr234567"
+          - name: "old_value"
+            value: "2025-01-15T09:00:00Z"
+          - name: "new_value"
+            value: "2025-01-15T10:00:00Z"
+
+  event_response_accept:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "change_event_response"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_title"
+            value: "All Hands Meeting"
+          - name: "event_id"
+            value: "evt_stu890123"
+          - name: "response_status"
+            value: "accepted"
+
+  event_response_decline:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "change_event_response"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_title"
+            value: "Optional Training"
+          - name: "event_id"
+            value: "evt_vwx456789"
+          - name: "response_status"
+            value: "declined"
+
+  event_response_tentative:
+    actor.callerType: "USER"
+    events:
+      - type: "event_change"
+        name: "change_event_response"
+        parameters:
+          - name: "calendar_id"
+            value: "primary"
+          - name: "event_title"
+            value: "Team Lunch"
+          - name: "event_id"
+            value: "evt_yza012345"
+          - name: "response_status"
+            value: "tentative"
+
+  # ==========================================
+  # RESOURCE_CHANGE - Resource calendar changes
+  # ==========================================
+
+  resource_create:
+    actor.callerType: "USER"
+    events:
+      - type: "resource_change"
+        name: "create_resource"
+        parameters:
+          - name: "resource_id"
+            value: "conf-room-a"
+          - name: "resource_name"
+            value: "Conference Room A"
+          - name: "resource_type"
+            value: "ROOM"
+
+  resource_delete:
+    actor.callerType: "USER"
+    events:
+      - type: "resource_change"
+        name: "delete_resource"
+        parameters:
+          - name: "resource_id"
+            value: "old-conf-room"
+          - name: "resource_name"
+            value: "Old Conference Room"
+
+# Correlation rules - maintain consistency across related logs
+correlation:
+  - field: "id.customerId"
+    scope: "global"
+    description: "Same customer ID for all logs from one organization"
+
+  - field: "actor.email"
+    scope: "session"
+    description: "Same user across related activities"
+
+  - field: "actor.profileId"
+    scope: "session"
+    correlation_with: "actor.email"
+    description: "Profile ID must match email"
