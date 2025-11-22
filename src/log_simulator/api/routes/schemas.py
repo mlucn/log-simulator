@@ -13,15 +13,33 @@ router = APIRouter(prefix="/schemas", tags=["schemas"])
 
 
 def _find_schema_path(schema_name: str, schemas_dir: Path) -> Path:
-    """Find the full path to a schema file."""
+    """
+    Find the full path to a schema file.
+
+    Supports multiple formats:
+    - Relative path: "google_workspace/admin" -> cloud_identity/google_workspace/admin.yaml
+    - Full path: "cloud_identity/google_workspace/admin" -> cloud_identity/google_workspace/admin.yaml
+    - Simple name: "nginx_access" -> web_servers/nginx_access.yaml
+    """
     # Remove .yaml extension if present
     if schema_name.endswith(".yaml"):
         schema_name = schema_name[:-5]
 
-    # Try direct path first
+    # Try direct path first (e.g., "cloud_identity/google_workspace/admin")
     schema_path = schemas_dir / f"{schema_name}.yaml"
     if schema_path.exists():
         return schema_path
+
+    # Search recursively for matching schema
+    # This allows "google_workspace/admin" to find "cloud_identity/google_workspace/admin.yaml"
+    for schema_file in schemas_dir.rglob("*.yaml"):
+        rel_path = schema_file.relative_to(schemas_dir)
+        schema_full_name = str(rel_path.with_suffix(""))
+
+        # Check if the schema_name matches the end of the full path
+        # This allows both "admin" and "google_workspace/admin" to match
+        if schema_full_name == schema_name or schema_full_name.endswith(f"/{schema_name}"):
+            return schema_file
 
     # If not found, raise error
     raise HTTPException(

@@ -19,13 +19,27 @@ def list_schemas() -> dict[str, list[str]]:
     schemas_dir = Path(__file__).parent / "schemas"
     schemas: dict[str, list[str]] = {}
 
-    for category_dir in schemas_dir.iterdir():
-        if category_dir.is_dir() and not category_dir.name.startswith("__"):
-            category = category_dir.name
-            schemas[category] = []
+    if not schemas_dir.exists():
+        return schemas
 
-            for schema_file in category_dir.glob("*.yaml"):
-                schemas[category].append(schema_file.stem)
+    # Walk through the schemas directory recursively
+    for schema_file in schemas_dir.rglob("*.yaml"):
+        # Get relative path from schemas_dir
+        rel_path = schema_file.relative_to(schemas_dir)
+
+        # Get category (top-level directory name)
+        if len(rel_path.parts) > 1:
+            category = rel_path.parts[0]
+        else:
+            category = "other"
+
+        # Get schema name (relative path without .yaml extension)
+        schema_name = str(rel_path.with_suffix(""))
+
+        # Add to category
+        if category not in schemas:
+            schemas[category] = []
+        schemas[category].append(schema_name)
 
     return schemas
 
@@ -46,21 +60,38 @@ def print_schemas():
 
 
 def find_schema_path(schema_name: str) -> Optional[Path]:
-    """Find the full path to a schema file by name."""
+    """
+    Find the full path to a schema file by name.
+
+    Supports multiple formats:
+    - Relative path: "google_workspace/admin" -> cloud_identity/google_workspace/admin.yaml
+    - Full path: "cloud_identity/google_workspace/admin" -> cloud_identity/google_workspace/admin.yaml
+    - Simple name: "nginx_access" -> web_servers/nginx_access.yaml
+    """
     schemas_dir = Path(__file__).parent / "schemas"
 
-    # Check if it's a full path
-    if "/" in schema_name:
-        schema_path = schemas_dir / f"{schema_name}.yaml"
-        if schema_path.exists():
-            return schema_path
+    if not schemas_dir.exists():
+        return None
 
-    # Search all categories
-    for category_dir in schemas_dir.iterdir():
-        if category_dir.is_dir():
-            schema_path = category_dir / f"{schema_name}.yaml"
-            if schema_path.exists():
-                return schema_path
+    # Remove .yaml extension if present
+    if schema_name.endswith(".yaml"):
+        schema_name = schema_name[:-5]
+
+    # Try direct path first (e.g., "cloud_identity/google_workspace/admin")
+    schema_path = schemas_dir / f"{schema_name}.yaml"
+    if schema_path.exists():
+        return schema_path
+
+    # Search recursively for matching schema
+    # This allows "google_workspace/admin" to find "cloud_identity/google_workspace/admin.yaml"
+    for schema_file in schemas_dir.rglob("*.yaml"):
+        rel_path = schema_file.relative_to(schemas_dir)
+        schema_full_name = str(rel_path.with_suffix(""))
+
+        # Check if the schema_name matches the end of the full path
+        # This allows both "admin" and "google_workspace/admin" to match
+        if schema_full_name == schema_name or schema_full_name.endswith(f"/{schema_name}"):
+            return schema_file
 
     return None
 
@@ -75,14 +106,20 @@ Examples:
   # List all available schemas
   %(prog)s --list
 
-  # Generate 10 Google Workspace logs
-  %(prog)s google_workspace -n 10
+  # Generate Google Workspace admin logs
+  %(prog)s google_workspace/admin -n 10
+
+  # Generate Drive logs with external sharing scenario
+  %(prog)s google_workspace/drive -n 5 --scenario file_share_external
+
+  # Generate login logs with time spread
+  %(prog)s google_workspace/login -n 100 --spread 3600 -o login_logs.json
+
+  # List scenarios for a specific schema
+  %(prog)s google_workspace/admin --list-scenarios
 
   # Generate Azure AD logs with specific scenario
-  %(prog)s azure_ad_signin -n 5 --scenario user_login_failed
-
-  # Generate logs spread over 1 hour and save to file
-  %(prog)s nginx_access -n 100 --spread 3600 -o logs.json
+  %(prog)s azure_ad_signin -n 5 --scenario failed_login_mfa_required
 
   # Pretty-print output
   %(prog)s office365_audit -n 3 --pretty
