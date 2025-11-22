@@ -11,7 +11,6 @@ import pytest
 
 from log_simulator.generators.schema_generator import SchemaBasedGenerator
 
-
 # Define schema paths
 SCHEMA_DIR = Path("src/log_simulator/schemas/cloud_identity/google_workspace")
 
@@ -38,13 +37,15 @@ class TestGoogleWorkspaceSchemas:
     def test_schema_metadata(self, app_name, schema_path):
         """Test that schema metadata is correct for Chronicle compatibility."""
         generator = SchemaBasedGenerator(str(schema_path))
-        schema_info = generator.get_schema_info()
 
         # Verify log_type is WORKSPACE_ACTIVITY for Chronicle compatibility
         assert generator.schema.get("log_type") == "WORKSPACE_ACTIVITY"
 
         # Verify source API is documented
-        assert generator.schema.get("source_api") == "Google Workspace Admin SDK Reports API v1"
+        assert (
+            generator.schema.get("source_api")
+            == "Google Workspace Admin SDK Reports API v1"
+        )
 
         # Verify application_name matches
         assert generator.schema.get("application_name") == app_name
@@ -235,7 +236,7 @@ class TestGoogleWorkspaceSchemas:
 
     def test_json_serialization(self):
         """Test that generated logs can be serialized to JSON."""
-        for app_name, schema_path in SCHEMAS.items():
+        for _app_name, schema_path in SCHEMAS.items():
             generator = SchemaBasedGenerator(str(schema_path))
             logs = generator.generate(count=1)
 
@@ -259,6 +260,6 @@ class TestGoogleWorkspaceSchemas:
 
     def test_schema_version_consistency(self):
         """Test that all schemas have consistent version."""
-        for app_name, schema_path in SCHEMAS.items():
+        for _app_name, schema_path in SCHEMAS.items():
             generator = SchemaBasedGenerator(str(schema_path))
             assert generator.schema.get("schema_version") == "1.0"
