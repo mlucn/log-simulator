@@ -1,0 +1,338 @@
+# Google Workspace Activity Log Schema - OAuth Token
+# Compatible with Google SecOps Chronicle WORKSPACE_ACTIVITY parser
+# Reference: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities
+# Chronicle Documentation: https://cloud.google.com/chronicle/docs/ingestion/default-parsers/collect-workspace-logs
+
+schema_version: "1.0"
+log_type: "WORKSPACE_ACTIVITY"
+source_api: "Google Workspace Admin SDK Reports API v1"
+application_name: "token"
+description: "Google Workspace Activity logs - OAuth token events (authorization, revocation, third-party app access)"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+chronicle_compatible: true
+
+# Field definitions - Standard Google Workspace Activity Log structure
+fields:
+  kind:
+    type: "constant"
+    value: "admin#reports#activity"
+    required: true
+    description: "Resource type identifier for Google Workspace Activity"
+
+  id:
+    type: "object"
+    required: true
+    description: "Unique identifier for the activity"
+    fields:
+      time:
+        type: "datetime"
+        format: "iso8601"
+        required: true
+        description: "Time of occurrence in ISO 8601 format"
+
+      uniqueQualifier:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 16
+        required: true
+        description: "Unique qualifier for the event"
+
+      applicationName:
+        type: "constant"
+        value: "token"
+        required: true
+        description: "Google Workspace application name (locked to 'token')"
+
+      customerId:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "C"
+          length: 8
+        required: true
+        description: "Unique identifier for customer/organization"
+
+  actor:
+    type: "object"
+    required: true
+    description: "User or application performing the action"
+    fields:
+      callerType:
+        type: "enum"
+        values:
+          - "USER"
+          - "APPLICATION"
+        required: true
+        description: "Type of actor performing the action"
+        distribution:
+          USER: 0.95
+          APPLICATION: 0.05
+
+      email:
+        type: "email"
+        generator: "email"
+        required: true
+        description: "Actor's email address"
+
+      profileId:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 21
+        required: true
+        description: "Actor's profile ID"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the actor"
+
+  events:
+    type: "array"
+    required: true
+    description: "List of events in this activity"
+    min_items: 1
+    max_items: 1
+    item:
+      type: "object"
+      fields:
+        type:
+          type: "string"
+          required: true
+          description: "Event type category (e.g., authorize, revoke)"
+
+        name:
+          type: "string"
+          required: true
+          description: "Event name (specific action within the event type)"
+
+        parameters:
+          type: "array"
+          required: false
+          description: "Additional event-specific parameters"
+          item:
+            type: "object"
+            fields:
+              name:
+                type: "string"
+                required: true
+                description: "Parameter name"
+
+              value:
+                type: "string"
+                required: false
+                description: "Parameter value (for single values)"
+
+              intValue:
+                type: "integer"
+                required: false
+                description: "Parameter value (for integer values)"
+
+              boolValue:
+                type: "boolean"
+                required: false
+                description: "Parameter value (for boolean values)"
+
+              multiValue:
+                type: "array"
+                required: false
+                description: "Parameter value (for multiple values)"
+                item:
+                  type: "string"
+
+# Pre-defined scenarios for different OAuth Token event types
+# Organized by event_type > event_name
+
+scenarios:
+  # ==========================================
+  # AUTHORIZE - OAuth authorization events
+  # ==========================================
+
+  authorize_3p_app:
+    actor.callerType: "USER"
+    events:
+      - type: "authorize"
+        name: "authorize"
+        parameters:
+          - name: "app_name"
+            value: "Slack"
+          - name: "client_id"
+            value: "123456789.apps.googleusercontent.com"
+          - name: "scope"
+            multiValue:
+              - "https://www.googleapis.com/auth/drive.readonly"
+              - "https://www.googleapis.com/auth/userinfo.email"
+
+  authorize_gmail_access:
+    actor.callerType: "USER"
+    events:
+      - type: "authorize"
+        name: "authorize"
+        parameters:
+          - name: "app_name"
+            value: "Mail Client App"
+          - name: "client_id"
+            value: "987654321.apps.googleusercontent.com"
+          - name: "scope"
+            multiValue:
+              - "https://www.googleapis.com/auth/gmail.readonly"
+              - "https://www.googleapis.com/auth/gmail.send"
+
+  authorize_calendar_access:
+    actor.callerType: "USER"
+    events:
+      - type: "authorize"
+        name: "authorize"
+        parameters:
+          - name: "app_name"
+            value: "Calendar Integration"
+          - name: "client_id"
+            value: "456789123.apps.googleusercontent.com"
+          - name: "scope"
+            multiValue:
+              - "https://www.googleapis.com/auth/calendar.readonly"
+              - "https://www.googleapis.com/auth/calendar.events"
+
+  authorize_drive_full_access:
+    actor.callerType: "USER"
+    events:
+      - type: "authorize"
+        name: "authorize"
+        parameters:
+          - name: "app_name"
+            value: "File Manager Pro"
+          - name: "client_id"
+            value: "789123456.apps.googleusercontent.com"
+          - name: "scope"
+            multiValue:
+              - "https://www.googleapis.com/auth/drive"
+              - "https://www.googleapis.com/auth/drive.file"
+
+  # ==========================================
+  # REVOKE - OAuth token revocation events
+  # ==========================================
+
+  revoke_3p_app:
+    actor.callerType: "USER"
+    events:
+      - type: "revoke"
+        name: "revoke"
+        parameters:
+          - name: "app_name"
+            value: "Old Third Party App"
+          - name: "client_id"
+            value: "111222333.apps.googleusercontent.com"
+
+  revoke_suspicious_app:
+    actor.callerType: "USER"
+    events:
+      - type: "revoke"
+        name: "revoke"
+        parameters:
+          - name: "app_name"
+            value: "Suspicious App"
+          - name: "client_id"
+            value: "999888777.apps.googleusercontent.com"
+          - name: "reason"
+            value: "security_concern"
+
+  # ==========================================
+  # ADMIN_REVOKE - Admin-initiated revocation
+  # ==========================================
+
+  admin_revoke_user_tokens:
+    actor.callerType: "USER"
+    events:
+      - type: "admin_revoke"
+        name: "admin_revoke"
+        parameters:
+          - name: "app_name"
+            value: "Banned Application"
+          - name: "client_id"
+            value: "666555444.apps.googleusercontent.com"
+          - name: "affected_user_email"
+            value: "user@example.com"
+
+  admin_revoke_all_tokens:
+    actor.callerType: "USER"
+    events:
+      - type: "admin_revoke"
+        name: "admin_revoke_all"
+        parameters:
+          - name: "affected_user_email"
+            value: "compromised@example.com"
+          - name: "reason"
+            value: "account_compromise"
+
+  # ==========================================
+  # TOKEN_REFRESH - Token refresh events
+  # ==========================================
+
+  token_refresh:
+    actor.callerType: "APPLICATION"
+    events:
+      - type: "token_refresh"
+        name: "token_refresh"
+        parameters:
+          - name: "app_name"
+            value: "Active Integration"
+          - name: "client_id"
+            value: "555444333.apps.googleusercontent.com"
+
+  # ==========================================
+  # SCOPE_CHANGE - OAuth scope changes
+  # ==========================================
+
+  scope_expansion:
+    actor.callerType: "USER"
+    events:
+      - type: "authorize"
+        name: "scope_grant"
+        parameters:
+          - name: "app_name"
+            value: "Productivity Suite"
+          - name: "client_id"
+            value: "222333444.apps.googleusercontent.com"
+          - name: "scope"
+            multiValue:
+              - "https://www.googleapis.com/auth/drive"
+              - "https://www.googleapis.com/auth/calendar"
+              - "https://www.googleapis.com/auth/gmail.readonly"
+
+  scope_reduction:
+    actor.callerType: "USER"
+    events:
+      - type: "authorize"
+        name: "scope_change"
+        parameters:
+          - name: "app_name"
+            value: "Limited Access App"
+          - name: "client_id"
+            value: "333444555.apps.googleusercontent.com"
+          - name: "old_scope"
+            multiValue:
+              - "https://www.googleapis.com/auth/drive"
+              - "https://www.googleapis.com/auth/gmail.modify"
+          - name: "new_scope"
+            multiValue:
+              - "https://www.googleapis.com/auth/drive.readonly"
+
+# Correlation rules - maintain consistency across related logs
+correlation:
+  - field: "id.customerId"
+    scope: "global"
+    description: "Same customer ID for all logs from one organization"
+
+  - field: "actor.email"
+    scope: "session"
+    description: "Same user across related activities"
+
+  - field: "actor.profileId"
+    scope: "session"
+    correlation_with: "actor.email"
+    description: "Profile ID must match email"

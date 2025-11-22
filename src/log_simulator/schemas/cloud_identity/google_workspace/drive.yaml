@@ -1,0 +1,566 @@
+# Google Workspace Activity Log Schema - Google Drive
+# Compatible with Google SecOps Chronicle WORKSPACE_ACTIVITY parser
+# Reference: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities
+# Chronicle Documentation: https://cloud.google.com/chronicle/docs/ingestion/default-parsers/collect-workspace-logs
+
+schema_version: "1.0"
+log_type: "WORKSPACE_ACTIVITY"
+source_api: "Google Workspace Admin SDK Reports API v1"
+application_name: "drive"
+description: "Google Workspace Activity logs - Google Drive events (file access, sharing, creation, deletion, permissions)"
+
+# Output format configuration
+output_format: "json"
+ecs_compatible: false
+chronicle_compatible: true
+
+# Field definitions - Standard Google Workspace Activity Log structure
+fields:
+  kind:
+    type: "constant"
+    value: "admin#reports#activity"
+    required: true
+    description: "Resource type identifier for Google Workspace Activity"
+
+  id:
+    type: "object"
+    required: true
+    description: "Unique identifier for the activity"
+    fields:
+      time:
+        type: "datetime"
+        format: "iso8601"
+        required: true
+        description: "Time of occurrence in ISO 8601 format"
+
+      uniqueQualifier:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 16
+        required: true
+        description: "Unique qualifier for the event"
+
+      applicationName:
+        type: "constant"
+        value: "drive"
+        required: true
+        description: "Google Workspace application name (locked to 'drive')"
+
+      customerId:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "C"
+          length: 8
+        required: true
+        description: "Unique identifier for customer/organization"
+
+  actor:
+    type: "object"
+    required: true
+    description: "User or application performing the action"
+    fields:
+      callerType:
+        type: "enum"
+        values:
+          - "USER"
+          - "APPLICATION"
+          - "SERVICE_ACCOUNT"
+        required: true
+        description: "Type of actor performing the action"
+        distribution:
+          USER: 0.85
+          APPLICATION: 0.10
+          SERVICE_ACCOUNT: 0.05
+
+      email:
+        type: "email"
+        generator: "email"
+        required: true
+        description: "Actor's email address"
+
+      profileId:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 21
+        required: true
+        description: "Actor's profile ID"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the actor"
+
+  events:
+    type: "array"
+    required: true
+    description: "List of events in this activity"
+    min_items: 1
+    max_items: 3
+    item:
+      type: "object"
+      fields:
+        type:
+          type: "string"
+          required: true
+          description: "Event type category (e.g., access, create, edit, delete, share)"
+
+        name:
+          type: "string"
+          required: true
+          description: "Event name (specific action within the event type)"
+
+        parameters:
+          type: "array"
+          required: false
+          description: "Additional event-specific parameters"
+          item:
+            type: "object"
+            fields:
+              name:
+                type: "string"
+                required: true
+                description: "Parameter name"
+
+              value:
+                type: "string"
+                required: false
+                description: "Parameter value (for single values)"
+
+              intValue:
+                type: "integer"
+                required: false
+                description: "Parameter value (for integer values)"
+
+              boolValue:
+                type: "boolean"
+                required: false
+                description: "Parameter value (for boolean values)"
+
+              multiValue:
+                type: "array"
+                required: false
+                description: "Parameter value (for multiple values)"
+                item:
+                  type: "string"
+
+# Pre-defined scenarios for different Drive event types
+# Organized by event_type > event_name
+
+scenarios:
+  # ==========================================
+  # ACCESS - File/folder access events
+  # ==========================================
+
+  file_view:
+    actor.callerType: "USER"
+    events:
+      - type: "access"
+        name: "view"
+        parameters:
+          - name: "doc_title"
+            value: "Q4 Financial Report.docx"
+          - name: "doc_id"
+            value: "1A2B3C4D5E6F7G8H9I0J"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "finance@example.com"
+          - name: "visibility"
+            value: "private"
+
+  file_preview:
+    actor.callerType: "USER"
+    events:
+      - type: "access"
+        name: "preview"
+        parameters:
+          - name: "doc_title"
+            value: "Project Proposal.pdf"
+          - name: "doc_id"
+            value: "2B3C4D5E6F7G8H9I0J1K"
+          - name: "doc_type"
+            value: "pdf"
+          - name: "owner"
+            value: "sales@example.com"
+
+  file_download:
+    actor.callerType: "USER"
+    events:
+      - type: "download"
+        name: "download"
+        parameters:
+          - name: "doc_title"
+            value: "Customer_Data.xlsx"
+          - name: "doc_id"
+            value: "3C4D5E6F7G8H9I0J1K2L"
+          - name: "doc_type"
+            value: "spreadsheet"
+          - name: "owner"
+            value: "marketing@example.com"
+
+  file_print:
+    actor.callerType: "USER"
+    events:
+      - type: "access"
+        name: "print"
+        parameters:
+          - name: "doc_title"
+            value: "Confidential Contract.docx"
+          - name: "doc_id"
+            value: "4D5E6F7G8H9I0J1K2L3M"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "legal@example.com"
+
+  # ==========================================
+  # CREATE - File/folder creation events
+  # ==========================================
+
+  file_create:
+    actor.callerType: "USER"
+    events:
+      - type: "create"
+        name: "create"
+        parameters:
+          - name: "doc_title"
+            value: "New Project Plan.docx"
+          - name: "doc_id"
+            value: "5E6F7G8H9I0J1K2L3M4N"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "pm@example.com"
+          - name: "visibility"
+            value: "private"
+
+  folder_create:
+    actor.callerType: "USER"
+    events:
+      - type: "create"
+        name: "create"
+        parameters:
+          - name: "doc_title"
+            value: "Q1 2025 Projects"
+          - name: "doc_id"
+            value: "6F7G8H9I0J1K2L3M4N5O"
+          - name: "doc_type"
+            value: "folder"
+          - name: "owner"
+            value: "admin@example.com"
+
+  file_upload:
+    actor.callerType: "USER"
+    events:
+      - type: "upload"
+        name: "upload"
+        parameters:
+          - name: "doc_title"
+            value: "Presentation_Draft.pptx"
+          - name: "doc_id"
+            value: "7G8H9I0J1K2L3M4N5O6P"
+          - name: "doc_type"
+            value: "presentation"
+          - name: "owner"
+            value: "marketing@example.com"
+
+  file_copy:
+    actor.callerType: "USER"
+    events:
+      - type: "create"
+        name: "copy"
+        parameters:
+          - name: "doc_title"
+            value: "Template Copy.docx"
+          - name: "doc_id"
+            value: "8H9I0J1K2L3M4N5O6P7Q"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "user@example.com"
+          - name: "source_doc_id"
+            value: "0J1K2L3M4N5O6P7Q8R9S"
+
+  # ==========================================
+  # EDIT - File editing events
+  # ==========================================
+
+  file_edit:
+    actor.callerType: "USER"
+    events:
+      - type: "edit"
+        name: "edit"
+        parameters:
+          - name: "doc_title"
+            value: "Team Notes.docx"
+          - name: "doc_id"
+            value: "9I0J1K2L3M4N5O6P7Q8R"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "team@example.com"
+
+  file_rename:
+    actor.callerType: "USER"
+    events:
+      - type: "rename"
+        name: "rename"
+        parameters:
+          - name: "doc_title"
+            value: "Updated_Filename.docx"
+          - name: "doc_id"
+            value: "1K2L3M4N5O6P7Q8R9S0T"
+          - name: "doc_type"
+            value: "document"
+          - name: "old_value"
+            value: "Old_Filename.docx"
+          - name: "new_value"
+            value: "Updated_Filename.docx"
+
+  # ==========================================
+  # DELETE - File/folder deletion events
+  # ==========================================
+
+  file_delete:
+    actor.callerType: "USER"
+    events:
+      - type: "delete"
+        name: "delete"
+        parameters:
+          - name: "doc_title"
+            value: "Obsolete_Document.docx"
+          - name: "doc_id"
+            value: "2L3M4N5O6P7Q8R9S0T1U"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "user@example.com"
+
+  file_trash:
+    actor.callerType: "USER"
+    events:
+      - type: "trash"
+        name: "trash"
+        parameters:
+          - name: "doc_title"
+            value: "Draft_To_Delete.docx"
+          - name: "doc_id"
+            value: "3M4N5O6P7Q8R9S0T1U2V"
+          - name: "doc_type"
+            value: "document"
+
+  file_untrash:
+    actor.callerType: "USER"
+    events:
+      - type: "untrash"
+        name: "untrash"
+        parameters:
+          - name: "doc_title"
+            value: "Recovered_File.xlsx"
+          - name: "doc_id"
+            value: "4N5O6P7Q8R9S0T1U2V3W"
+          - name: "doc_type"
+            value: "spreadsheet"
+
+  # ==========================================
+  # SHARE - Sharing and permission events
+  # ==========================================
+
+  file_share_with_user:
+    actor.callerType: "USER"
+    events:
+      - type: "acl_change"
+        name: "user_access_grant"
+        parameters:
+          - name: "doc_title"
+            value: "Shared Project.docx"
+          - name: "doc_id"
+            value: "5O6P7Q8R9S0T1U2V3W4X"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "owner@example.com"
+          - name: "target_user"
+            value: "collaborator@example.com"
+          - name: "visibility"
+            value: "shared_internally"
+          - name: "new_value"
+            multiValue:
+              - "writer"
+
+  file_share_external:
+    actor.callerType: "USER"
+    events:
+      - type: "acl_change"
+        name: "user_access_grant"
+        parameters:
+          - name: "doc_title"
+            value: "External Collaboration.docx"
+          - name: "doc_id"
+            value: "6P7Q8R9S0T1U2V3W4X5Y"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "internal@example.com"
+          - name: "target_user"
+            value: "external@partner.com"
+          - name: "visibility"
+            value: "shared_externally"
+          - name: "new_value"
+            multiValue:
+              - "reader"
+
+  file_remove_permission:
+    actor.callerType: "USER"
+    events:
+      - type: "acl_change"
+        name: "user_access_revoke"
+        parameters:
+          - name: "doc_title"
+            value: "Restricted Document.docx"
+          - name: "doc_id"
+            value: "7Q8R9S0T1U2V3W4X5Y6Z"
+          - name: "doc_type"
+            value: "document"
+          - name: "owner"
+            value: "admin@example.com"
+          - name: "target_user"
+            value: "formeruser@example.com"
+
+  file_change_permission:
+    actor.callerType: "USER"
+    events:
+      - type: "acl_change"
+        name: "user_access_change"
+        parameters:
+          - name: "doc_title"
+            value: "Team Spreadsheet.xlsx"
+          - name: "doc_id"
+            value: "8R9S0T1U2V3W4X5Y6Z7A"
+          - name: "doc_type"
+            value: "spreadsheet"
+          - name: "target_user"
+            value: "editor@example.com"
+          - name: "old_value"
+            multiValue:
+              - "writer"
+          - name: "new_value"
+            multiValue:
+              - "reader"
+
+  file_share_public:
+    actor.callerType: "USER"
+    events:
+      - type: "acl_change"
+        name: "change_document_visibility"
+        parameters:
+          - name: "doc_title"
+            value: "Public Resource.pdf"
+          - name: "doc_id"
+            value: "9S0T1U2V3W4X5Y6Z7A8B"
+          - name: "doc_type"
+            value: "pdf"
+          - name: "visibility"
+            value: "public"
+          - name: "old_value"
+            value: "private"
+          - name: "new_value"
+            value: "public_on_the_web"
+
+  add_to_folder:
+    actor.callerType: "USER"
+    events:
+      - type: "move"
+        name: "add_to_folder"
+        parameters:
+          - name: "doc_title"
+            value: "Document.docx"
+          - name: "doc_id"
+            value: "0T1U2V3W4X5Y6Z7A8B9C"
+          - name: "doc_type"
+            value: "document"
+          - name: "destination_folder_title"
+            value: "Projects"
+          - name: "destination_folder_id"
+            value: "folder123456"
+
+  remove_from_folder:
+    actor.callerType: "USER"
+    events:
+      - type: "move"
+        name: "remove_from_folder"
+        parameters:
+          - name: "doc_title"
+            value: "Moved_File.xlsx"
+          - name: "doc_id"
+            value: "1U2V3W4X5Y6Z7A8B9C0D"
+          - name: "doc_type"
+            value: "spreadsheet"
+          - name: "source_folder_title"
+            value: "Archive"
+          - name: "source_folder_id"
+            value: "folder654321"
+
+  # ==========================================
+  # APPROVAL - Drive approval events
+  # ==========================================
+
+  approval_request_sent:
+    actor.callerType: "USER"
+    events:
+      - type: "approval"
+        name: "approval_request_sent"
+        parameters:
+          - name: "doc_title"
+            value: "Budget Request.docx"
+          - name: "doc_id"
+            value: "2V3W4X5Y6Z7A8B9C0D1E"
+          - name: "doc_type"
+            value: "document"
+          - name: "approver_email"
+            value: "manager@example.com"
+
+  approval_granted:
+    actor.callerType: "USER"
+    events:
+      - type: "approval"
+        name: "approval_granted"
+        parameters:
+          - name: "doc_title"
+            value: "Budget Request.docx"
+          - name: "doc_id"
+            value: "2V3W4X5Y6Z7A8B9C0D1E"
+          - name: "doc_type"
+            value: "document"
+
+  approval_denied:
+    actor.callerType: "USER"
+    events:
+      - type: "approval"
+        name: "approval_denied"
+        parameters:
+          - name: "doc_title"
+            value: "Expense Report.xlsx"
+          - name: "doc_id"
+            value: "3W4X5Y6Z7A8B9C0D1E2F"
+          - name: "doc_type"
+            value: "spreadsheet"
+
+# Correlation rules - maintain consistency across related logs
+correlation:
+  - field: "id.customerId"
+    scope: "global"
+    description: "Same customer ID for all logs from one organization"
+
+  - field: "actor.email"
+    scope: "session"
+    description: "Same user across related activities"
+
+  - field: "actor.profileId"
+    scope: "session"
+    correlation_with: "actor.email"
+    description: "Profile ID must match email"
