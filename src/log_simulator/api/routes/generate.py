@@ -38,7 +38,9 @@ def _find_schema_path(schema_name: str, schemas_dir: Path) -> Path:
 
         # Check if the schema_name matches the end of the full path
         # This allows both "admin" and "google_workspace/admin" to match
-        if schema_full_name == schema_name or schema_full_name.endswith(f"/{schema_name}"):
+        if schema_full_name == schema_name or schema_full_name.endswith(
+            f"/{schema_name}"
+        ):
             return schema_file
 
     # If not found, raise error
