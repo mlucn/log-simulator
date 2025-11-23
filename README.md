@@ -74,14 +74,14 @@ pre-commit install
 from log_simulator import SchemaBasedGenerator
 
 # Initialize generator with a schema
-generator = SchemaBasedGenerator('src/log_simulator/schemas/cloud_identity/google_workspace.yaml')
+generator = SchemaBasedGenerator('src/log_simulator/schemas/cloud_identity/google_workspace/admin.yaml')
 
 # Generate a single log
 logs = generator.generate(count=1)
 print(logs[0])
 
 # Generate logs with a specific scenario
-logs = generator.generate(count=5, scenario='user_login_failure')
+logs = generator.generate(count=5, scenario='user_delete')
 
 # Generate logs spread over time (5 logs over 60 seconds)
 logs = generator.generate(count=5, time_spread_seconds=60)
@@ -90,11 +90,11 @@ logs = generator.generate(count=5, time_spread_seconds=60)
 ### Command Line Examples
 
 ```bash
-# Run the Google Workspace example
-python examples/generate_google_workspace.py
+# Run the Google Workspace Admin example
+python examples/generate_google_workspace_admin.py
 
-# Generate and save logs to a file
-python examples/generate_google_workspace.py > output.json
+# Run the Google Workspace Drive example
+python examples/generate_google_workspace_drive.py
 ```
 
 ## Usage Examples
@@ -106,18 +106,18 @@ from log_simulator import SchemaBasedGenerator
 import json
 
 generator = SchemaBasedGenerator(
-    'src/log_simulator/schemas/cloud_identity/google_workspace.yaml'
+    'src/log_simulator/schemas/cloud_identity/google_workspace/login.yaml'
 )
 
 # List available scenarios
 print("Available scenarios:", generator.list_scenarios())
 
 # Generate successful login
-login_success = generator.generate(count=1, scenario='user_login_success')
+login_success = generator.generate(count=1, scenario='login_success')
 print(json.dumps(login_success[0], indent=2))
 
 # Generate failed login attempts
-login_failures = generator.generate(count=3, scenario='user_login_failure')
+login_failures = generator.generate(count=3, scenario='login_failure')
 ```
 
 ### Example 2: Azure AD Sign-ins with Risk Detection
@@ -176,7 +176,12 @@ log-simulator/
 │       │   └── schema_generator.py
 │       ├── schemas/             # YAML schema definitions
 │       │   ├── cloud_identity/
-│       │   │   ├── google_workspace.yaml
+│       │   │   ├── google_workspace/  # Application-specific schemas
+│       │   │   │   ├── admin.yaml
+│       │   │   │   ├── drive.yaml
+│       │   │   │   ├── login.yaml
+│       │   │   │   ├── calendar.yaml
+│       │   │   │   └── token.yaml
 │       │   │   └── azure_ad_signin.yaml
 │       │   ├── cloud_infrastructure/
 │       │   ├── security/
@@ -190,7 +195,9 @@ log-simulator/
 │   ├── unit/
 │   └── integration/
 ├── examples/                    # Usage examples
-│   └── generate_google_workspace.py
+│   ├── generate_google_workspace_admin.py
+│   ├── generate_google_workspace_drive.py
+│   └── test_workspace_schemas.py
 ├── docs/                        # Documentation
 │   ├── SAMPLE_LOG_RESOURCES.md
 │   └── CLAUDE.md
@@ -447,7 +454,8 @@ See [LICENSE](LICENSE) file for details.
 - [docs/SAMPLE_LOG_RESOURCES.md](docs/SAMPLE_LOG_RESOURCES.md) - Sample log sources and resources
 
 ### Example Scripts
-- [examples/generate_google_workspace.py](examples/generate_google_workspace.py) - Google Workspace examples
+- [examples/generate_google_workspace_admin.py](examples/generate_google_workspace_admin.py) - Google Workspace Admin examples
+- [examples/generate_google_workspace_drive.py](examples/generate_google_workspace_drive.py) - Google Workspace Drive examples
 - [examples/generate_cloudtrail.py](examples/generate_cloudtrail.py) - AWS CloudTrail examples
 - [examples/generate_crowdstrike.py](examples/generate_crowdstrike.py) - CrowdStrike FDR examples
 - [examples/correlation_scenarios.py](examples/correlation_scenarios.py) - Multi-log correlation

@@ -12,14 +12,15 @@ class TestSchemaBasedGenerator:
 
     @pytest.fixture
     def google_workspace_schema(self):
-        """Path to Google Workspace schema."""
+        """Path to Google Workspace login schema."""
         schema_path = (
             Path(__file__).parent.parent.parent
             / "src"
             / "log_simulator"
             / "schemas"
             / "cloud_identity"
-            / "google_workspace.yaml"
+            / "google_workspace"
+            / "login.yaml"
         )
         return str(schema_path)
 
@@ -32,12 +33,12 @@ class TestSchemaBasedGenerator:
         """Test schema loading."""
         assert generator.schema is not None
         assert "log_type" in generator.schema
-        assert generator.schema["log_type"] == "google_workspace_audit"
+        assert generator.schema["log_type"] == "WORKSPACE_ACTIVITY"
 
     def test_get_schema_info(self, generator):
         """Test getting schema information."""
         info = generator.get_schema_info()
-        assert info["log_type"] == "google_workspace_audit"
+        assert info["log_type"] == "WORKSPACE_ACTIVITY"
         assert "description" in info
         assert "available_scenarios" in info
         assert len(info["available_scenarios"]) > 0
@@ -46,8 +47,8 @@ class TestSchemaBasedGenerator:
         """Test listing scenarios."""
         scenarios = generator.list_scenarios()
         assert isinstance(scenarios, list)
-        assert "user_login_success" in scenarios
-        assert "user_login_failure" in scenarios
+        assert "login_success" in scenarios
+        assert "login_failure" in scenarios
 
     def test_generate_single_log(self, generator):
         """Test generating a single log."""
@@ -73,7 +74,7 @@ class TestSchemaBasedGenerator:
 
     def test_generate_with_scenario(self, generator):
         """Test generating logs with a scenario."""
-        logs = generator.generate(count=1, scenario="user_login_success")
+        logs = generator.generate(count=1, scenario="login_success")
         assert len(logs) == 1
         log = logs[0]
 
@@ -112,8 +113,8 @@ class TestSchemaBasedGenerator:
 
     def test_generate_with_scenario_overrides(self, generator):
         """Test that scenario overrides work correctly."""
-        # Test user_login_failure scenario which has specific overrides
-        logs = generator.generate(count=1, scenario="user_login_failure")
+        # Test login_failure scenario which has specific overrides
+        logs = generator.generate(count=1, scenario="login_failure")
         assert len(logs) == 1
         log = logs[0]
 

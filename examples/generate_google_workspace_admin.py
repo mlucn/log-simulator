@@ -61,7 +61,9 @@ def main():
         print(f"✓ Generated {count} {scenario} event(s)")
 
     print(f"\nSample user_create event:")
-    user_create_logs = [log for log in all_logs if log['events'][0]['name'] == 'create_user']
+    user_create_logs = [
+        log for log in all_logs if log["events"][0]["name"] == "create_user"
+    ]
     if user_create_logs:
         print(json.dumps(user_create_logs[0], indent=2))
     print()
@@ -115,7 +117,7 @@ def main():
         count=20,
         scenario="user_create",
         base_time=base_time,
-        time_spread_seconds=3600  # 1 hour
+        time_spread_seconds=3600,  # 1 hour
     )
 
     print(f"✓ Generated {len(time_series_logs)} events spread over 1 hour")
@@ -125,7 +127,9 @@ def main():
 
     # Save to file
     output_file = "workspace_admin_logs.json"
-    all_combined_logs = all_logs + privilege_logs + group_logs + security_logs + time_series_logs
+    all_combined_logs = (
+        all_logs + privilege_logs + group_logs + security_logs + time_series_logs
+    )
 
     with open(output_file, "w") as f:
         json.dump(all_combined_logs, f, indent=2)
