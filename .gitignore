@@ -210,5 +210,4 @@ __marimo__/
 generated_logs/
 examples/*.json
 coverage.json
-GEMINI.md
 scripts/batch_config.json
