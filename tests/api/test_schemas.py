@@ -58,7 +58,7 @@ def test_schemas_endpoint_has_expected_schemas(client: TestClient):
 
     # Check for at least some expected schemas
     expected_schemas = [
-        "cloud_identity/google_workspace",
+        "cloud_identity/google_workspace/admin",
         "security/crowdstrike_fdr",
         "web_servers/nginx_access",
     ]
@@ -115,7 +115,7 @@ def test_schemas_endpoint_consistent_results(client: TestClient):
 def test_schemas_endpoint_specific_schema_info(client: TestClient):
     """Test getting info about a specific schema."""
     # This tests the detail endpoint for a single schema
-    response = client.get("/api/v1/schemas/cloud_identity/google_workspace")
+    response = client.get("/api/v1/schemas/cloud_identity/google_workspace/admin")
 
     assert response.status_code == 200
     data = response.json()
@@ -125,5 +125,5 @@ def test_schemas_endpoint_specific_schema_info(client: TestClient):
     assert "log_type" in data
     assert "description" in data
     assert "available_scenarios" in data
-    assert data["schema_name"] == "cloud_identity/google_workspace"
+    assert data["schema_name"] == "cloud_identity/google_workspace/admin"
     assert isinstance(data["available_scenarios"], list)

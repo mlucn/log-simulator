@@ -86,7 +86,7 @@ def main():
         count=50,
         scenario="file_download",
         base_time=base_time,
-        time_spread_seconds=300  # 5 minutes
+        time_spread_seconds=300,  # 5 minutes
     )
 
     print(f"✓ Generated {len(mass_downloads)} download events in 5-minute window")
@@ -114,8 +114,12 @@ def main():
 
     permission_logs = []
     permission_logs.extend(generator.generate(count=8, scenario="file_share_with_user"))
-    permission_logs.extend(generator.generate(count=3, scenario="file_remove_permission"))
-    permission_logs.extend(generator.generate(count=2, scenario="file_change_permission"))
+    permission_logs.extend(
+        generator.generate(count=3, scenario="file_remove_permission")
+    )
+    permission_logs.extend(
+        generator.generate(count=2, scenario="file_change_permission")
+    )
 
     print(f"✓ Generated {len(permission_logs)} permission change events")
     print(f"\nSample permission grant:")
@@ -124,7 +128,14 @@ def main():
 
     # Save to file
     output_file = "workspace_drive_logs.json"
-    all_logs = external_shares + public_shares + normal_activity + mass_downloads + lifecycle_logs + permission_logs
+    all_logs = (
+        external_shares
+        + public_shares
+        + normal_activity
+        + mass_downloads
+        + lifecycle_logs
+        + permission_logs
+    )
 
     with open(output_file, "w") as f:
         json.dump(all_logs, f, indent=2)

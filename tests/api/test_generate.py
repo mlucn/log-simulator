@@ -91,7 +91,7 @@ def test_generate_endpoint_missing_schema_name(client: TestClient):
 def test_generate_endpoint_default_count(client: TestClient):
     """Test that count has a default value."""
     # count is optional with default=10
-    request = {"schema_name": "cloud_identity/google_workspace"}
+    request = {"schema_name": "cloud_identity/google_workspace/admin"}
     response = client.post("/api/v1/generate", json=request)
 
     assert response.status_code == 200
@@ -101,7 +101,7 @@ def test_generate_endpoint_default_count(client: TestClient):
 
 def test_generate_endpoint_zero_count(client: TestClient):
     """Test that zero count returns 422 (validation error)."""
-    request = {"schema_name": "cloud_identity/google_workspace", "count": 0}
+    request = {"schema_name": "cloud_identity/google_workspace/admin", "count": 0}
     response = client.post("/api/v1/generate", json=request)
 
     assert response.status_code == 422  # Pydantic validation error (ge=1)
@@ -109,7 +109,7 @@ def test_generate_endpoint_zero_count(client: TestClient):
 
 def test_generate_endpoint_negative_count(client: TestClient):
     """Test that negative count returns 422 (validation error)."""
-    request = {"schema_name": "cloud_identity/google_workspace", "count": -5}
+    request = {"schema_name": "cloud_identity/google_workspace/admin", "count": -5}
     response = client.post("/api/v1/generate", json=request)
 
     assert response.status_code == 422  # Pydantic validation error (ge=1)
@@ -118,7 +118,7 @@ def test_generate_endpoint_negative_count(client: TestClient):
 def test_generate_endpoint_invalid_scenario(client: TestClient):
     """Test that invalid scenario name returns 400."""
     request = {
-        "schema_name": "cloud_identity/google_workspace",
+        "schema_name": "cloud_identity/google_workspace/admin",
         "count": 5,
         "scenario": "nonexistent_scenario",
     }
@@ -159,7 +159,7 @@ def test_generate_endpoint_response_metadata(
 
 def test_generate_endpoint_different_counts(client: TestClient):
     """Test generation with different count values."""
-    schema = "cloud_identity/google_workspace"
+    schema = "cloud_identity/google_workspace/admin"
 
     for count in [1, 5, 10, 50]:
         request = {"schema_name": schema, "count": count}
@@ -173,7 +173,7 @@ def test_generate_endpoint_different_counts(client: TestClient):
 def test_generate_endpoint_multiple_schemas(client: TestClient):
     """Test generation with different schemas."""
     schemas = [
-        "cloud_identity/google_workspace",
+        "cloud_identity/google_workspace/admin",
         "web_servers/nginx_access",
         "security/crowdstrike_fdr",
     ]
@@ -223,7 +223,7 @@ def test_generate_endpoint_empty_body(client: TestClient):
 def test_generate_endpoint_extra_fields_ignored(client: TestClient):
     """Test that extra fields in request are handled gracefully."""
     request = {
-        "schema_name": "cloud_identity/google_workspace",
+        "schema_name": "cloud_identity/google_workspace/admin",
         "count": 5,
         "extra_field": "should be ignored",
     }
@@ -237,7 +237,7 @@ def test_generate_endpoint_response_time_small(client: TestClient):
     """Test that small generation is fast."""
     import time
 
-    request = {"schema_name": "cloud_identity/google_workspace", "count": 1}
+    request = {"schema_name": "cloud_identity/google_workspace/admin", "count": 1}
 
     start = time.time()
     response = client.post("/api/v1/generate", json=request)
@@ -250,7 +250,7 @@ def test_generate_endpoint_response_time_small(client: TestClient):
 
 def test_generate_endpoint_consistent_log_count(client: TestClient):
     """Test that multiple requests with same count produce same count."""
-    request = {"schema_name": "cloud_identity/google_workspace", "count": 10}
+    request = {"schema_name": "cloud_identity/google_workspace/admin", "count": 10}
 
     for _ in range(3):
         response = client.post("/api/v1/generate", json=request)
@@ -261,11 +261,11 @@ def test_generate_endpoint_consistent_log_count(client: TestClient):
 
 def test_generate_endpoint_scenario_affects_output(client: TestClient):
     """Test that scenario parameter affects generated logs."""
-    schema = "cloud_identity/google_workspace"
+    schema = "cloud_identity/google_workspace/admin"
 
     # Generate with different scenarios
-    request1 = {"schema_name": schema, "count": 1, "scenario": "user_login_success"}
-    request2 = {"schema_name": schema, "count": 1, "scenario": "user_login_failure"}
+    request1 = {"schema_name": schema, "count": 1, "scenario": "user_create"}
+    request2 = {"schema_name": schema, "count": 1, "scenario": "user_delete"}
 
     response1 = client.post("/api/v1/generate", json=request1)
     response2 = client.post("/api/v1/generate", json=request2)
@@ -279,5 +279,5 @@ def test_generate_endpoint_scenario_affects_output(client: TestClient):
     # Both should generate successfully
     assert len(data1["logs"]) == 1
     assert len(data2["logs"]) == 1
-    assert data1["scenario_used"] == "user_login_success"
-    assert data2["scenario_used"] == "user_login_failure"
+    assert data1["scenario_used"] == "user_create"
+    assert data2["scenario_used"] == "user_delete"

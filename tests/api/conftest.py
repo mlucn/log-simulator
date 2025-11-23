@@ -16,9 +16,9 @@ def client() -> TestClient:
 def sample_generate_request() -> dict:
     """Sample valid generate request payload."""
     return {
-        "schema_name": "cloud_identity/google_workspace",
+        "schema_name": "cloud_identity/google_workspace/admin",
         "count": 5,
-        "scenario": "user_login_success",
+        "scenario": "user_create",
     }
 
 
@@ -26,7 +26,7 @@ def sample_generate_request() -> dict:
 def sample_generate_request_minimal() -> dict:
     """Minimal valid generate request payload."""
     return {
-        "schema_name": "cloud_identity/google_workspace",
+        "schema_name": "cloud_identity/google_workspace/admin",
         "count": 1,
     }
 
@@ -35,7 +35,7 @@ def sample_generate_request_minimal() -> dict:
 def sample_generate_request_with_time() -> dict:
     """Generate request with time parameters."""
     return {
-        "schema_name": "cloud_identity/google_workspace",
+        "schema_name": "cloud_identity/google_workspace/admin",
         "count": 10,
         "time_spread_seconds": 3600,
     }
@@ -54,7 +54,7 @@ def invalid_schema_request() -> dict:
 def invalid_count_request() -> dict:
     """Request with invalid count (too high)."""
     return {
-        "schema_name": "cloud_identity/google_workspace",
+        "schema_name": "cloud_identity/google_workspace/admin",
         "count": 20000,  # Exceeds default max of 10000
     }
 
@@ -63,7 +63,7 @@ def invalid_count_request() -> dict:
 def invalid_time_spread_request() -> dict:
     """Request with invalid time spread."""
     return {
-        "schema_name": "cloud_identity/google_workspace",
+        "schema_name": "cloud_identity/google_workspace/admin",
         "count": 5,
         "time_spread_seconds": 100000,  # Exceeds default max of 86400
     }

@@ -10,6 +10,7 @@ from pathlib import Path
 
 # Add src to path
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from log_simulator.generators.schema_generator import SchemaBasedGenerator
@@ -43,10 +44,10 @@ def test_schema(schema_path, app_name):
 
         # Verify structure
         log = logs[0]
-        assert log['kind'] == 'admin#reports#activity'
-        assert log['id']['applicationName'] == app_name
-        assert 'actor' in log
-        assert 'events' in log
+        assert log["kind"] == "admin#reports#activity"
+        assert log["id"]["applicationName"] == app_name
+        assert "actor" in log
+        assert "events" in log
         print(f"✓ Log structure verified")
 
         # Generate with first scenario
@@ -64,17 +65,25 @@ def test_schema(schema_path, app_name):
     except Exception as e:
         print(f"\n❌ {app_name.upper()} FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def main():
     """Run all schema tests."""
-    print("="*60)
+    print("=" * 60)
     print("Google Workspace Schema Validation")
-    print("="*60)
+    print("=" * 60)
 
-    schema_dir = Path(__file__).parent.parent / "src" / "log_simulator" / "schemas" / "cloud_identity" / "google_workspace"
+    schema_dir = (
+        Path(__file__).parent.parent
+        / "src"
+        / "log_simulator"
+        / "schemas"
+        / "cloud_identity"
+        / "google_workspace"
+    )
 
     schemas = {
         "admin": schema_dir / "admin.yaml",
@@ -87,7 +96,9 @@ def main():
     results = {}
     for app_name, schema_path in schemas.items():
         if not schema_path.exists():
-            print(f"\n❌ {app_name.upper()} FAILED: Schema file not found at {schema_path}")
+            print(
+                f"\n❌ {app_name.upper()} FAILED: Schema file not found at {schema_path}"
+            )
             results[app_name] = False
             continue
 

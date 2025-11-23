@@ -49,21 +49,22 @@ def test_list_schemas_category_structure():
 
 def test_find_schema_path_with_full_path():
     """Test finding schema with full category/schema path."""
-    path = find_schema_path("cloud_identity/google_workspace")
+    path = find_schema_path("cloud_identity/google_workspace/admin")
 
     assert path is not None
     assert path.exists()
     assert path.suffix == ".yaml"
-    assert "google_workspace" in path.name
+    assert "admin" in path.name
 
 
 def test_find_schema_path_with_short_name():
     """Test finding schema with just the schema name."""
-    path = find_schema_path("google_workspace")
+    path = find_schema_path("admin")
 
     assert path is not None
     assert path.exists()
     assert path.suffix == ".yaml"
+    assert "admin" in path.name
 
 
 def test_find_schema_path_nonexistent():
@@ -97,7 +98,7 @@ def test_print_schemas_contains_known_schemas():
     result = output.getvalue()
 
     # Should contain at least some known schemas
-    known_schemas = ["google_workspace", "azure_ad_signin", "nginx_access"]
+    known_schemas = ["admin", "azure_ad_signin", "nginx_access"]
 
     found = [schema for schema in known_schemas if schema in result]
     assert len(found) > 0, "Should find at least one known schema in output"
@@ -143,7 +144,7 @@ def test_main_generate_single_log():
     """Test generating a single log entry."""
     output = StringIO()
 
-    with patch("sys.argv", ["log-simulator", "google_workspace"]):
+    with patch("sys.argv", ["log-simulator", "google_workspace/admin"]):
         with patch("sys.stdout", output):
             exit_code = main()
 
@@ -159,7 +160,7 @@ def test_main_generate_with_count():
     """Test generating multiple logs with --count."""
     output = StringIO()
 
-    with patch("sys.argv", ["log-simulator", "google_workspace", "-n", "5"]):
+    with patch("sys.argv", ["log-simulator", "google_workspace/admin", "-n", "5"]):
         with patch("sys.stdout", output):
             exit_code = main()
 
@@ -178,7 +179,7 @@ def test_main_generate_with_pretty_output():
     output = StringIO()
 
     with patch(
-        "sys.argv", ["log-simulator", "google_workspace", "-n", "2", "--pretty"]
+        "sys.argv", ["log-simulator", "google_workspace/admin", "-n", "2", "--pretty"]
     ):
         with patch("sys.stdout", output):
             exit_code = main()
@@ -197,7 +198,7 @@ def test_main_generate_with_output_file(tmp_path):
 
     with patch(
         "sys.argv",
-        ["log-simulator", "google_workspace", "-n", "3", "-o", str(output_file)],
+        ["log-simulator", "google_workspace/admin", "-n", "3", "-o", str(output_file)],
     ):
         with patch("sys.stderr", stderr_output):
             exit_code = main()
@@ -221,7 +222,7 @@ def test_main_generate_with_scenario():
     output = StringIO()
 
     with patch(
-        "sys.argv", ["log-simulator", "google_workspace", "-s", "user_login_success"]
+        "sys.argv", ["log-simulator", "google_workspace/login", "-s", "login_success"]
     ):
         with patch("sys.stdout", output):
             exit_code = main()
@@ -238,7 +239,8 @@ def test_main_generate_with_invalid_scenario():
     output = StringIO()
 
     with patch(
-        "sys.argv", ["log-simulator", "google_workspace", "-s", "invalid_scenario_xyz"]
+        "sys.argv",
+        ["log-simulator", "google_workspace/admin", "-s", "invalid_scenario_xyz"],
     ):
         with patch("sys.stderr", output):
             exit_code = main()
@@ -254,7 +256,8 @@ def test_main_generate_with_spread():
     output = StringIO()
 
     with patch(
-        "sys.argv", ["log-simulator", "google_workspace", "-n", "5", "--spread", "3600"]
+        "sys.argv",
+        ["log-simulator", "google_workspace/admin", "-n", "5", "--spread", "3600"],
     ):
         with patch("sys.stdout", output):
             exit_code = main()
@@ -273,7 +276,9 @@ def test_main_list_scenarios():
     """Test --list-scenarios flag."""
     output = StringIO()
 
-    with patch("sys.argv", ["log-simulator", "google_workspace", "--list-scenarios"]):
+    with patch(
+        "sys.argv", ["log-simulator", "google_workspace/admin", "--list-scenarios"]
+    ):
         with patch("sys.stdout", output):
             exit_code = main()
 
@@ -281,14 +286,14 @@ def test_main_list_scenarios():
     result = output.getvalue()
 
     assert "Available scenarios" in result
-    assert "user_login_success" in result
+    assert "user_create" in result  # Admin schema has user_create, not login scenarios
 
 
 def test_main_show_info():
     """Test --info flag."""
     output = StringIO()
 
-    with patch("sys.argv", ["log-simulator", "google_workspace", "--info"]):
+    with patch("sys.argv", ["log-simulator", "google_workspace/admin", "--info"]):
         with patch("sys.stdout", output):
             exit_code = main()
 
@@ -306,7 +311,7 @@ def test_main_output_file_creates_parent_dirs(tmp_path):
     stderr_output = StringIO()
 
     with patch(
-        "sys.argv", ["log-simulator", "google_workspace", "-o", str(output_file)]
+        "sys.argv", ["log-simulator", "google_workspace/admin", "-o", str(output_file)]
     ):
         with patch("sys.stderr", stderr_output):
             exit_code = main()
@@ -320,7 +325,7 @@ def test_main_with_full_schema_path():
     """Test using full category/schema path."""
     output = StringIO()
 
-    with patch("sys.argv", ["log-simulator", "cloud_identity/google_workspace"]):
+    with patch("sys.argv", ["log-simulator", "cloud_identity/google_workspace/admin"]):
         with patch("sys.stdout", output):
             exit_code = main()
 
