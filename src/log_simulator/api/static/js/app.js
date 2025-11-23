@@ -28,6 +28,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
 });
 
+// Generate user-friendly display name from schema path
+function getDisplayName(schemaPath) {
+    const parts = schemaPath.split('/');
+
+    // Handle Google Workspace subdirectory schemas
+    // e.g., "cloud_identity/google_workspace/admin" -> "Google Workspace - Admin"
+    if (parts.length === 3 && parts[1] === 'google_workspace') {
+        const appName = parts[2]
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        return `Google Workspace - ${appName}`;
+    }
+
+    // Handle other schemas
+    // e.g., "cloud_identity/azure_ad_signin" -> "Azure Ad Signin"
+    const namePart = parts[parts.length - 1] || schemaPath;
+    return namePart
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
 // Load available schemas from API
 async function loadSchemas() {
     try {
@@ -46,12 +69,9 @@ async function loadSchemas() {
             schemas[category].forEach(schemaPath => {
                 const option = document.createElement('option');
                 option.value = schemaPath;
-                // Extract readable name from path (e.g., "cloud_identity/google_workspace" -> "Google Workspace")
-                const namePart = schemaPath.split('/')[1] || schemaPath;
-                option.textContent = namePart
-                    .split('_')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+
+                // Generate user-friendly display name
+                option.textContent = getDisplayName(schemaPath);
                 option.dataset.category = category;
                 optgroup.appendChild(option);
             });
