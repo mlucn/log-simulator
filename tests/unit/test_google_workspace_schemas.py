@@ -20,6 +20,9 @@ SCHEMAS = {
     "login": SCHEMA_DIR / "login.yaml",
     "calendar": SCHEMA_DIR / "calendar.yaml",
     "token": SCHEMA_DIR / "token.yaml",
+    "gmail": SCHEMA_DIR / "gmail.yaml",
+    "chat": SCHEMA_DIR / "chat.yaml",
+    "meet": SCHEMA_DIR / "meet.yaml",
 }
 
 
@@ -205,7 +208,79 @@ class TestGoogleWorkspaceSchemas:
         params = {p["name"]: p for p in event["parameters"]}
         assert "scope" in params
         assert "multiValue" in params["scope"]
+        assert "multiValue" in params["scope"]
         assert isinstance(params["scope"]["multiValue"], list)
+
+    def test_gmail_scenarios(self):
+        """Test specific gmail scenarios."""
+        generator = SchemaBasedGenerator(str(SCHEMAS["gmail"]))
+        scenarios = generator.list_scenarios()
+
+        # Verify key gmail scenarios exist
+        assert "email_sent" in scenarios
+        assert "email_received" in scenarios
+        assert "email_spam_user_marked" in scenarios
+
+        # Test email_sent scenario
+        logs = generator.generate(count=1, scenario="email_sent")
+        assert len(logs) == 1
+        event = logs[0]["events"][0]
+        assert event["type"] == "delivery"
+        assert event["name"] == "message_sent"
+
+        # Verify parameters
+        params = {p["name"]: p for p in event["parameters"]}
+        assert "message_id" in params
+        assert "message_id" in params
+        assert "recipient_address" in params
+
+    def test_chat_scenarios(self):
+        """Test specific chat scenarios."""
+        generator = SchemaBasedGenerator(str(SCHEMAS["chat"]))
+        scenarios = generator.list_scenarios()
+
+        # Verify key chat scenarios exist
+        assert "direct_message_sent" in scenarios
+        assert "room_message_posted" in scenarios
+        assert "new_room_created" in scenarios
+
+        # Test room_message_posted scenario
+        logs = generator.generate(count=1, scenario="room_message_posted")
+        assert len(logs) == 1
+        event = logs[0]["events"][0]
+        assert event["type"] == "message"
+        assert event["name"] == "message_posted"
+
+        # Verify parameters
+        params = {p["name"]: p for p in event["parameters"]}
+        assert "message_id" in params
+        assert "room_id" in params
+        assert "room_type" in params
+        assert "room_type" in params
+        assert params["room_type"]["value"] == "room"
+
+    def test_meet_scenarios(self):
+        """Test specific meet scenarios."""
+        generator = SchemaBasedGenerator(str(SCHEMAS["meet"]))
+        scenarios = generator.list_scenarios()
+
+        # Verify key meet scenarios exist
+        assert "standard_meeting" in scenarios
+        assert "external_participant_join" in scenarios
+        assert "large_meeting_event" in scenarios
+
+        # Test standard_meeting scenario
+        logs = generator.generate(count=1, scenario="standard_meeting")
+        assert len(logs) == 1
+        event = logs[0]["events"][0]
+        assert event["type"] == "call_event"
+        assert event["name"] == "call_ended"
+
+        # Verify parameters
+        params = {p["name"]: p for p in event["parameters"]}
+        assert "conference_id" in params
+        assert "duration_seconds" in params
+        assert "participant_count" in params
 
     def test_multiple_log_generation(self):
         """Test generating multiple logs."""

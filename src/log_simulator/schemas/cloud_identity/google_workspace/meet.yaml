@@ -1,0 +1,306 @@
+# Google Workspace Activity Log Schema - Google Meet
+# Compatible with Google SecOps Chronicle WORKSPACE_ACTIVITY parser
+# Reference: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities
+
+schema_version: "1.0"
+log_type: "WORKSPACE_ACTIVITY"
+source_api: "Google Workspace Admin SDK Reports API v1"
+application_name: "meet"
+description: "Google Workspace Activity logs - Google Meet events (calls, participation, recording, moderation)"
+
+output_format: "json"
+ecs_compatible: false
+chronicle_compatible: true
+
+fields:
+  kind:
+    type: "constant"
+    value: "admin#reports#activity"
+    required: true
+    description: "Resource type identifier for Google Workspace Activity"
+
+  id:
+    type: "object"
+    required: true
+    description: "Unique identifier for the activity"
+    fields:
+      time:
+        type: "datetime"
+        format: "iso8601"
+        required: true
+        description: "Time of occurrence in ISO 8601 format"
+
+      uniqueQualifier:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 18
+        required: true
+        description: "Unique qualifier for the event"
+
+      applicationName:
+        type: "constant"
+        value: "meet"
+        required: true
+        description: "Google Workspace application name"
+
+      customerId:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "C"
+          length: 8
+        required: true
+        description: "Unique identifier for customer/organization"
+
+  actor:
+    type: "object"
+    required: true
+    description: "User or application performing the action"
+    fields:
+      callerType:
+        type: "constant"
+        value: "USER"
+        required: true
+        description: "Type of actor performing the action"
+
+      email:
+        type: "email"
+        generator: "email"
+        required: true
+        description: "Actor's email address"
+
+      profileId:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 21
+        required: true
+        description: "Actor's profile ID"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the actor"
+
+  events:
+    type: "array"
+    required: true
+    description: "List of events in this activity"
+    min_items: 1
+    max_items: 1
+    item:
+      type: "object"
+      fields:
+        type:
+          type: "string"
+          required: true
+          description: "Event type category"
+
+        name:
+          type: "string"
+          required: true
+          description: "Event name"
+
+        parameters:
+          type: "array"
+          required: false
+          description: "Additional event-specific parameters"
+          item:
+            type: "object"
+            fields:
+              name:
+                type: "string"
+                required: true
+                description: "Parameter name"
+
+              value:
+                type: "string"
+                required: false
+                description: "Parameter value"
+
+              intValue:
+                type: "integer"
+                required: false
+                description: "Parameter value (integer)"
+
+              boolValue:
+                type: "boolean"
+                required: false
+                description: "Parameter value (boolean)"
+
+              multiValue:
+                type: "array"
+                required: false
+                description: "Parameter value (multiple)"
+                item:
+                  type: "string"
+
+scenarios:
+  # ==========================================
+  # CALL LIFECYCLE - Call events
+  # ==========================================
+
+  standard_meeting:
+    events:
+      - type: "call_event"
+        name: "call_ended"
+        parameters:
+          - name: "conference_id"
+            value: "abc-defg-hij"
+          - name: "duration_seconds"
+            intValue: 1800
+          - name: "participant_count"
+            intValue: 5
+          - name: "device_type"
+            value: "web"
+
+  external_participant_join:
+    events:
+      - type: "call_event"
+        name: "participant_joined"
+        parameters:
+          - name: "conference_id"
+            value: "xyz-uvwx-yz1"
+          - name: "is_external"
+            boolValue: true
+          - name: "organizer_email"
+            value: "host@example.com"
+
+  # ==========================================
+  # ENGAGEMENT - Meeting features
+  # ==========================================
+
+  large_meeting_event:
+    events:
+      - type: "conference_action"
+        name: "recording_started"
+        parameters:
+          - name: "conference_id"
+            value: "lmn-opqr-stu"
+          - name: "recording_id"
+            value: "rec-123456789"
+
+  presentation_started:
+    events:
+      - type: "conference_action"
+        name: "presentation_started"
+        parameters:
+          - name: "conference_id"
+            value: "abc-defg-hij"
+          - name: "presenter_email"
+            value: "presenter@example.com"
+
+  # ==========================================
+  # MODERATION - Security events
+  # ==========================================
+
+  unauthorized_access_attempt:
+    events:
+      - type: "moderation_event"
+        name: "knocking_denied"
+        parameters:
+          - name: "conference_id"
+            value: "sec-urem-eet"
+          - name: "knocker_name"
+            value: "Unknown User"
+          - name: "reason"
+            value: "not_invited"
+
+  daily_standup:
+    events:
+      - type: "call_event"
+        name: "call_ended"
+        parameters:
+          - name: "conference_id"
+            value: "standup-team-a"
+          - name: "duration_seconds"
+            intValue: 900
+          - name: "participant_count"
+            intValue: 8
+      - type: "conference_action"
+        name: "presentation_started"
+        parameters:
+          - name: "conference_id"
+            value: "standup-team-a"
+          - name: "presenter_email"
+            value: "lead@example.com"
+
+  all_hands_meeting:
+    events:
+      - type: "call_event"
+        name: "call_ended"
+        parameters:
+          - name: "conference_id"
+            value: "all-hands-q4"
+          - name: "duration_seconds"
+            intValue: 3600
+          - name: "participant_count"
+            intValue: 150
+      - type: "interaction"
+        name: "poll_created"
+        parameters:
+          - name: "conference_id"
+            value: "all-hands-q4"
+          - name: "poll_question"
+            value: "Lunch preference?"
+      - type: "interaction"
+        name: "q_and_a_question_created"
+        parameters:
+          - name: "conference_id"
+            value: "all-hands-q4"
+          - name: "question_text"
+            value: "When is the release?"
+
+  livestream_event:
+    events:
+      - type: "livestream"
+        name: "livestream_started"
+        parameters:
+          - name: "conference_id"
+            value: "live-stream-001"
+          - name: "viewer_count"
+            intValue: 500
+      - type: "livestream"
+        name: "livestream_watched"
+        parameters:
+          - name: "conference_id"
+            value: "live-stream-001"
+          - name: "viewer_email"
+            value: "employee@example.com"
+
+  external_interview:
+    events:
+      - type: "moderation_event"
+        name: "knocking_accepted"
+        parameters:
+          - name: "conference_id"
+            value: "interview-candidate-123"
+          - name: "knocker_name"
+            value: "Jane Candidate"
+      - type: "call_event"
+        name: "participant_joined"
+        parameters:
+          - name: "conference_id"
+            value: "interview-candidate-123"
+          - name: "is_external"
+            boolValue: true
+      - type: "conference_action"
+        name: "recording_started"
+        parameters:
+          - name: "conference_id"
+            value: "interview-candidate-123"
+          - name: "recording_id"
+            value: "rec-interview-123"
+
+
+
+correlation:
+  - field: "id.customerId"
+    scope: "global"
+    description: "Same customer ID for all logs from one organization"
+
+  - field: "actor.email"
+    scope: "session"
+    description: "Same user across related activities"

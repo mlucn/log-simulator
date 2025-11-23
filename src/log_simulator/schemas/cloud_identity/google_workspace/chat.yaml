@@ -1,0 +1,314 @@
+# Google Workspace Activity Log Schema - Google Chat
+# Compatible with Google SecOps Chronicle WORKSPACE_ACTIVITY parser
+# Reference: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities
+
+schema_version: "1.0"
+log_type: "WORKSPACE_ACTIVITY"
+source_api: "Google Workspace Admin SDK Reports API v1"
+application_name: "chat"
+description: "Google Workspace Activity logs - Google Chat events (messages, rooms, files, moderation)"
+
+output_format: "json"
+ecs_compatible: false
+chronicle_compatible: true
+
+fields:
+  kind:
+    type: "constant"
+    value: "admin#reports#activity"
+    required: true
+    description: "Resource type identifier for Google Workspace Activity"
+
+  id:
+    type: "object"
+    required: true
+    description: "Unique identifier for the activity"
+    fields:
+      time:
+        type: "datetime"
+        format: "iso8601"
+        required: true
+        description: "Time of occurrence in ISO 8601 format"
+
+      uniqueQualifier:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 18
+        required: true
+        description: "Unique qualifier for the event"
+
+      applicationName:
+        type: "constant"
+        value: "chat"
+        required: true
+        description: "Google Workspace application name"
+
+      customerId:
+        type: "string"
+        generator: "custom_id"
+        params:
+          prefix: "C"
+          length: 8
+        required: true
+        description: "Unique identifier for customer/organization"
+
+  actor:
+    type: "object"
+    required: true
+    description: "User or application performing the action"
+    fields:
+      callerType:
+        type: "constant"
+        value: "USER"
+        required: true
+        description: "Type of actor performing the action"
+
+      email:
+        type: "email"
+        generator: "email"
+        required: true
+        description: "Actor's email address"
+
+      profileId:
+        type: "string"
+        generator: "number_string"
+        params:
+          length: 21
+        required: true
+        description: "Actor's profile ID"
+
+  ipAddress:
+    type: "ipv4"
+    generator: "ipv4"
+    required: true
+    description: "IP address of the actor"
+
+  events:
+    type: "array"
+    required: true
+    description: "List of events in this activity"
+    min_items: 1
+    max_items: 1
+    item:
+      type: "object"
+      fields:
+        type:
+          type: "string"
+          required: true
+          description: "Event type category"
+
+        name:
+          type: "string"
+          required: true
+          description: "Event name"
+
+        parameters:
+          type: "array"
+          required: false
+          description: "Additional event-specific parameters"
+          item:
+            type: "object"
+            fields:
+              name:
+                type: "string"
+                required: true
+                description: "Parameter name"
+
+              value:
+                type: "string"
+                required: false
+                description: "Parameter value"
+
+              intValue:
+                type: "integer"
+                required: false
+                description: "Parameter value (integer)"
+
+              boolValue:
+                type: "boolean"
+                required: false
+                description: "Parameter value (boolean)"
+
+              multiValue:
+                type: "array"
+                required: false
+                description: "Parameter value (multiple)"
+                item:
+                  type: "string"
+
+scenarios:
+  # ==========================================
+  # MESSAGES - Message events
+  # ==========================================
+
+  direct_message_sent:
+    events:
+      - type: "message"
+        name: "message_posted"
+        parameters:
+          - name: "message_id"
+            value: "msg-dm-12345"
+          - name: "room_id"
+            value: "dm-user1-user2"
+          - name: "room_type"
+            value: "direct"
+
+  room_message_posted:
+    events:
+      - type: "message"
+        name: "message_posted"
+        parameters:
+          - name: "message_id"
+            value: "msg-room-67890"
+          - name: "room_id"
+            value: "space-engineering-team"
+          - name: "room_type"
+            value: "room"
+          - name: "room_name"
+            value: "Engineering Team"
+
+  # ==========================================
+  # ROOMS - Room management events
+  # ==========================================
+
+  new_room_created:
+    events:
+      - type: "room_change"
+        name: "room_created"
+        parameters:
+          - name: "room_id"
+            value: "space-project-alpha"
+          - name: "room_name"
+            value: "Project Alpha"
+          - name: "external_access"
+            boolValue: false
+
+  user_added_to_room:
+    events:
+      - type: "membership_change"
+        name: "room_member_added"
+        parameters:
+          - name: "room_id"
+            value: "space-project-alpha"
+          - name: "target_user"
+            value: "new.member@example.com"
+          - name: "inviter"
+            value: "admin@example.com"
+
+  # ==========================================
+  # CONTENT - File sharing events
+  # ==========================================
+
+  suspicious_file_share:
+    events:
+      - type: "file_transfer"
+        name: "file_upload"
+        parameters:
+          - name: "room_id"
+            value: "space-general"
+          - name: "file_name"
+            value: "passwords.txt"
+          - name: "file_type"
+            value: "text/plain"
+          - name: "file_hash"
+            value: "badhash123456"
+
+  moderation_events:
+    events:
+      - type: "moderation"
+        name: "user_blocked"
+        parameters:
+          - name: "blocked_user"
+            value: "troll@example.com"
+          - name: "reason"
+            value: "harassment"
+      - type: "message"
+        name: "message_reported"
+        parameters:
+          - name: "message_id"
+            value: "msg-bad-123"
+          - name: "reason"
+            value: "spam"
+
+  external_chat:
+    events:
+      - type: "message"
+        name: "message_posted"
+        parameters:
+          - name: "message_id"
+            value: "msg-ext-456"
+          - name: "room_id"
+            value: "dm-external-user"
+          - name: "room_type"
+            value: "direct"
+          - name: "recipient_domain"
+            value: "external-partner.com"
+      - type: "room_change"
+        name: "room_created"
+        parameters:
+          - name: "room_name"
+            value: "Joint Project with Vendor"
+          - name: "external_access"
+            boolValue: true
+
+  active_collaboration:
+    events:
+      - type: "message"
+        name: "message_posted"
+        parameters:
+          - name: "message_id"
+            value: "msg-collab-001"
+          - name: "room_id"
+            value: "space-project-team"
+          - name: "room_type"
+            value: "room"
+      - type: "interaction"
+        name: "reaction_added"
+        parameters:
+          - name: "message_id"
+            value: "msg-collab-001"
+          - name: "reaction_type"
+            value: "thumbs_up"
+      - type: "file_transfer"
+        name: "file_upload"
+        parameters:
+          - name: "room_id"
+            value: "space-project-team"
+          - name: "file_name"
+            value: "design_mockup.pdf"
+
+  room_management:
+    events:
+      - type: "room_change"
+        name: "room_created"
+        parameters:
+          - name: "room_id"
+            value: "space-new-project"
+          - name: "room_name"
+            value: "New Project"
+      - type: "membership_change"
+        name: "room_member_added"
+        parameters:
+          - name: "room_id"
+            value: "space-new-project"
+          - name: "target_user"
+            value: "member1@example.com"
+      - type: "room_change"
+        name: "room_updated"
+        parameters:
+          - name: "room_id"
+            value: "space-new-project"
+          - name: "setting_name"
+            value: "description"
+
+
+
+correlation:
+  - field: "id.customerId"
+    scope: "global"
+    description: "Same customer ID for all logs from one organization"
+
+  - field: "actor.email"
+    scope: "session"
+    description: "Same user across related activities"
