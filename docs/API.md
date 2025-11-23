@@ -122,9 +122,9 @@ curl http://localhost:8080/api/v1/schemas/cloud_identity/google_workspace
 **Response:**
 ```json
 {
-  "schema_name": "cloud_identity/google_workspace",
-  "log_type": "google_workspace_audit",
-  "description": "Google Workspace Admin SDK Reports API audit logs",
+  "schema_name": "cloud_identity/google_workspace/login",
+  "log_type": "WORKSPACE_ACTIVITY",
+  "description": "Google Workspace login activity logs",
   "output_format": "json",
   "available_scenarios": [
     "user_login_success",
